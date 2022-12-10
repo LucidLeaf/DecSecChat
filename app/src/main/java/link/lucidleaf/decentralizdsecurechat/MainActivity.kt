@@ -3,6 +3,7 @@ package link.lucidleaf.decentralizdsecurechat
 import android.Manifest
 import android.content.BroadcastReceiver
 import android.content.Context
+import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.net.wifi.p2p.WifiP2pDeviceList
@@ -54,10 +55,11 @@ class MainActivity : AppCompatActivity() {
         icLocation = findViewById(R.id.icLocation)
         recyclerView = findViewById(R.id.peerList)
 
-        displayPeers(Array(10) {i -> "Test Peer $i"})
+        displayPeers(Array(10) { i -> "Test Peer $i" })
         recyclerView?.layoutManager = LinearLayoutManager(this)
 
         requestLocationPermissions()
+        //todo turn on location service
 
         // enable receiving p2p events
         channel = manager?.initialize(this, mainLooper, null)
@@ -173,5 +175,8 @@ class MainActivity : AppCompatActivity() {
 
     fun openChat(peer: String) {
         println("Opening chat with $peer")
+        val chatIntent = Intent(this, PeerChat::class.java)
+        chatIntent.putExtra("peerName", peer)
+        startActivity(chatIntent)
     }
 }
