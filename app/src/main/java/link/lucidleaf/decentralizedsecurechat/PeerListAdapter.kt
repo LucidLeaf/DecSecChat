@@ -1,11 +1,9 @@
-package link.lucidleaf.decentralizdsecurechat
+package link.lucidleaf.decentralizedsecurechat
 
-import android.content.Context
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
-import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.RecyclerView
 
 class PeerListAdapter(
@@ -32,7 +30,7 @@ class PeerListAdapter(
     override fun onCreateViewHolder(viewGroup: ViewGroup, viewType: Int): PeerViewHolder {
         // Create a new view, which defines the UI of the list item
         val view = LayoutInflater.from(viewGroup.context)
-            .inflate(R.layout.peer_list_item, viewGroup, false)
+            .inflate(R.layout.peer_list_peer_name, viewGroup, false)
 
         return PeerViewHolder(view)
     }

@@ -4,12 +4,12 @@ plugins {
 }
 
 android {
-    namespace 'link.lucidleaf.decentralizdsecurechat'
+    namespace 'link.lucidleaf.decentralizedsecurechat'
     compileSdk 32
 
     defaultConfig {
-        applicationId "link.lucidleaf.decentralizdsecurechat"
-        minSdk 24
+        applicationId 'link.lucidleaf.decentralizedsecurechat'
+        minSdk 26
         targetSdk 32
         versionCode 1
         versionName "1.0"

@@ -1,4 +1,4 @@
-package link.lucidleaf.decentralizdsecurechat
+package link.lucidleaf.decentralizedsecurechat
 
 import android.Manifest
 import android.content.BroadcastReceiver
@@ -11,6 +11,7 @@ import android.net.wifi.p2p.WifiP2pManager
 import android.os.Bundle
 import android.widget.Button
 import android.widget.ImageView
+import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
@@ -25,15 +26,16 @@ class MainActivity : AppCompatActivity() {
     var icWifi: ImageView? = null
     var icLocation: ImageView? = null
     var recyclerView: RecyclerView? = null
+    var txtThisName: TextView? = null
+    var thisUser: User? = null
 
     // wifi p2p stuff
-    val manager: WifiP2pManager? by lazy(LazyThreadSafetyMode.NONE) {
+    private val manager: WifiP2pManager? by lazy(LazyThreadSafetyMode.NONE) {
         getSystemService(Context.WIFI_P2P_SERVICE) as WifiP2pManager?
     }
-
     var channel: WifiP2pManager.Channel? = null
     var receiver: BroadcastReceiver? = null
-    val intentFilter = IntentFilter().apply {
+    private val intentFilter = IntentFilter().apply {
         addAction(WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION)
         addAction(WifiP2pManager.WIFI_P2P_PEERS_CHANGED_ACTION)
         addAction(WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION)
@@ -48,9 +50,14 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        //initialize interactive stuffs
+        //initialize stuffs
+        thisUser = User(android.os.Build.MODEL, 0, "this phone")
+        txtThisName = findViewById(R.id.txtThisName)
+        txtThisName?.text = thisUser!!.name
         btnDiscoverPeers = findViewById(R.id.btnDiscoverPeers)
-        btnDiscoverPeers?.setOnClickListener { discoverPeers() }
+        btnDiscoverPeers?.setOnClickListener {
+            discoverPeers()
+        }
         icWifi = findViewById(R.id.icWifi)
         icLocation = findViewById(R.id.icLocation)
         recyclerView = findViewById(R.id.peerList)
@@ -168,14 +175,14 @@ class MainActivity : AppCompatActivity() {
         displayPeers(peerNames)
     }
 
-    fun displayPeers(peers: Array<String>) {
+    private fun displayPeers(peers: Array<String>) {
         val peerList = PeerListAdapter(peers, this)
         recyclerView?.adapter = peerList
     }
 
     fun openChat(peer: String) {
         println("Opening chat with $peer")
-        val chatIntent = Intent(this, PeerChat::class.java)
+        val chatIntent = Intent(this, ChatActivity::class.java)
         chatIntent.putExtra("peerName", peer)
         startActivity(chatIntent)
     }
