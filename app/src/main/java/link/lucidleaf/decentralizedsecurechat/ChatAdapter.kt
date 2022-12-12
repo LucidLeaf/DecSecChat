@@ -1,15 +1,17 @@
 package link.lucidleaf.decentralizedsecurechat
 
 import android.content.Context
+import android.text.format.DateFormat.format
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import androidx.cardview.widget.CardView
 import androidx.recyclerview.widget.RecyclerView
-
+import java.util.Date
 
 //credit goes to https://sendbird.com/developer/tutorials/android-chat-tutorial-building-a-messaging-ui
-class MessageListAdapter(context: Context, messageList: List<Message>) :
+class ChatAdapter(context: Context, messageList: List<Message>) :
     RecyclerView.Adapter<RecyclerView.ViewHolder>() {
     private val mContext: Context
     private val mMessageList: List<Message>
@@ -26,7 +28,7 @@ class MessageListAdapter(context: Context, messageList: List<Message>) :
     // Determines the appropriate ViewType according to the sender of the message.
     override fun getItemViewType(position: Int): Int {
         val message = mMessageList[position]
-        return if (message.thisUser()) {
+        return if (message.sender == User.getCurrentUser()) {
             // If the current user is the sender of the message
             VIEW_TYPE_MESSAGE_SENT
         } else {
@@ -73,10 +75,8 @@ class MessageListAdapter(context: Context, messageList: List<Message>) :
 
         fun bind(message: Message) {
             messageText.text = message.body
-
             // Format the stored timestamp into a readable String.
-            //todo this might look ugly, formatting function might be necessary
-            timeText.text = message.createdAt.toString()
+            timeText.text = formatCalendarTime(message.createdAt)
         }
     }
 
@@ -94,12 +94,14 @@ class MessageListAdapter(context: Context, messageList: List<Message>) :
 
         fun bind(message: Message) {
             messageText.text = message.body
-
             // Format the stored timestamp into a readable String using method.
-            //todo this might look ugly, formatting function might be necessary
-            timeText.text = message.createdAt.toString()
-            nameText.text = message.user.nickName
+            timeText.text = formatCalendarTime(message.createdAt)
+            nameText.text = message.sender.nickName
         }
+    }
+
+    private fun formatCalendarTime(createdAt: Date): String {
+        return format("hh:mm", createdAt).toString()
     }
 
     companion object {

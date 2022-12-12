@@ -26,11 +26,13 @@
         android:layout_height="0dp"
         android:layout_marginStart="1dp"
         android:layout_marginEnd="1dp"
-        app:layout_constraintBottom_toTopOf="@+id/txtChatMessage"
+        android:foregroundGravity="top"
+        app:layout_constraintBottom_toTopOf="@+id/txtMessage"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="1.0"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/txtChatPeerName"
+        app:stackFromEnd="true"
         tools:listitem="@layout/chat_from_me">
 
     </androidx.recyclerview.widget.RecyclerView>
@@ -41,19 +43,18 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginEnd="8dp"
+        android:layout_marginBottom="8dp"
         android:layout_weight="1"
         android:backgroundTint="#00FFFFFF"
         android:minHeight="48dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/recyclerChatMessages"
-        app:layout_constraintVertical_bias="0.0"
         app:srcCompat="@drawable/ic_baseline_send_24"
         app:tint="@color/nord14"
         tools:ignore="SpeakableTextPresentCheck" />
 
     <EditText
-        android:id="@+id/txtChatMessage"
+        android:id="@+id/txtMessage"
         style="@style/Theme.DecentralizedSecureChat"
         android:layout_width="0dp"
         android:layout_height="wrap_content"

@@ -6,7 +6,6 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
-import android.net.wifi.p2p.WifiP2pDevice
 import android.net.wifi.p2p.WifiP2pDeviceList
 import android.net.wifi.p2p.WifiP2pManager
 import android.os.Bundle
@@ -21,6 +20,10 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 
 
+private const val LOCATION_REQUEST = 1
+
+const val EXTRA_USER_ARRAY = "peerName"
+
 //most functionality here is based on https://developer.android.com/guide/topics/connectivity/wifip2p#create-application
 class MainActivity : AppCompatActivity() {
     // ux stuff
@@ -30,14 +33,13 @@ class MainActivity : AppCompatActivity() {
     private var recyclerView: RecyclerView? = null
     private var txtThisName: TextView? = null
     private var thisUser: User? = null
-    private var peerDeviceList: WifiP2pDeviceList? = null
 
     // wifi p2p functionality
     private val manager: WifiP2pManager? by lazy(LazyThreadSafetyMode.NONE) {
         getSystemService(Context.WIFI_P2P_SERVICE) as WifiP2pManager?
     }
-    var channel: WifiP2pManager.Channel? = null
-    var receiver: BroadcastReceiver? = null
+    private var channel: WifiP2pManager.Channel? = null
+    private var receiver: BroadcastReceiver? = null
     private val intentFilter = IntentFilter().apply {
         addAction(WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION)
         addAction(WifiP2pManager.WIFI_P2P_PEERS_CHANGED_ACTION)
@@ -61,16 +63,13 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun initializeElements() {
-        val device = WifiP2pDevice()
-        device.deviceName = android.os.Build.MODEL
-        thisUser = User(
-            device
-        )
+        thisUser = User.getCurrentUser()
         txtThisName = findViewById(R.id.txtThisName)
         txtThisName?.text = thisUser!!.name
         btnDiscoverPeers = findViewById(R.id.btnDiscoverPeers)
         btnDiscoverPeers?.setOnClickListener {
             discoverPeers()
+            displayPeers(arrayOf(User.getTemplateUser()))
         }
         icWifi = findViewById(R.id.icWifi)
         icLocation = findViewById(R.id.icLocation)
@@ -90,18 +89,14 @@ class MainActivity : AppCompatActivity() {
 
     private fun requestLocationPermissions() {
         if (ContextCompat.checkSelfPermission(
-                this,
-                Manifest.permission.ACCESS_FINE_LOCATION
+                this, Manifest.permission.ACCESS_FINE_LOCATION
             ) != PackageManager.PERMISSION_GRANTED
         ) {
             setIcon(Icons.LOCATION, false)
             ActivityCompat.requestPermissions(
-                this,
-                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
-                1
+                this, arrayOf(Manifest.permission.ACCESS_FINE_LOCATION), LOCATION_REQUEST
             )
-        } else
-            setIcon(Icons.LOCATION, true)
+        } else setIcon(Icons.LOCATION, true)
     }
 
     /* register the broadcast receiver with the intent values to be matched */
@@ -120,11 +115,14 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    override fun onDestroy() {
+        super.onDestroy()
+        MessagesAndUsersDB.dumpDB()
+    }
+
     private fun discoverPeers() {
-        if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) !=
-            PackageManager.PERMISSION_GRANTED
-        ) {
-            Toast.makeText(this, "Requires Locaiton Services", Toast.LENGTH_SHORT).show()
+        if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            Toast.makeText(this, "Requires Location Services", Toast.LENGTH_SHORT).show()
             println("Location permissions not granted")
             return
         }
@@ -140,51 +138,37 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<out String>,
-        grantResults: IntArray
+        requestCode: Int, permissions: Array<out String>, grantResults: IntArray
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        when (requestCode) {
-            1 -> {
-                if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    if (ContextCompat.checkSelfPermission(
-                            this,
-                            Manifest.permission.ACCESS_FINE_LOCATION
-                        ) == PackageManager.PERMISSION_GRANTED
-                    ) {
-                        println("Location Permision Granted")
-                        setIcon(Icons.LOCATION, true)
-                    }
-                } else {
-                    println("Location Permision Denied")
-                    setIcon(Icons.LOCATION, false)
+        if (requestCode == LOCATION_REQUEST) {
+            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                if (ContextCompat.checkSelfPermission(
+                        this, Manifest.permission.ACCESS_FINE_LOCATION
+                    ) == PackageManager.PERMISSION_GRANTED
+                ) {
+                    println("Location Permission Granted")
+                    setIcon(Icons.LOCATION, true)
                 }
-                return
+            } else {
+                println("Location Permission Denied")
+                setIcon(Icons.LOCATION, false)
             }
+            return
         }
     }
 
     fun setIcon(icon: Icons, mode: Boolean) {
         when (icon) {
-            Icons.WIFI -> {
-                if (mode)
-                    icWifi?.setImageResource(R.drawable.ic_wifi_on)
-                else
-                    icWifi?.setImageResource(R.drawable.ic_wifi_off)
-            }
-            Icons.LOCATION -> {
-                if (mode)
-                    icLocation?.setImageResource(R.drawable.ic_location_on)
-                else
-                    icLocation?.setImageResource(R.drawable.ic_location_off)
-            }
+            Icons.WIFI -> if (mode) icWifi?.setImageResource(R.drawable.ic_wifi_on)
+            else icWifi?.setImageResource(R.drawable.ic_wifi_off)
+            Icons.LOCATION -> if (mode) icLocation?.setImageResource(R.drawable.ic_location_on)
+            else icLocation?.setImageResource(R.drawable.ic_location_off)
         }
     }
 
     fun handlePeerListChange(peers: WifiP2pDeviceList) {
-        peerDeviceList = peers
-        val users: Array<User> = peers.deviceList.map {d -> User(d)}.toTypedArray()
+        val users: Array<User> = peers.deviceList.map { d -> User(d) }.toTypedArray()
         displayPeers(users)
     }
 
@@ -195,8 +179,13 @@ class MainActivity : AppCompatActivity() {
 
     fun openChat(user: User) {
         println("Opening chat with ${user.name}")
+        //todo attempt connection
+
+        //onSuccess
+        MessagesAndUsersDB.users.add(user)
         val chatIntent = Intent(this, ChatActivity::class.java)
-        chatIntent.putExtra("peerName", user.name)
+        chatIntent.putExtra(EXTRA_USER_ARRAY, user.name)
         startActivity(chatIntent)
     }
+
 }

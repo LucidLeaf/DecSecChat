@@ -8,7 +8,7 @@
         <!-- Secondary brand color. -->
         <item name="colorSecondary">@color/nord8</item>
         <item name="colorSecondaryVariant">@color/nord10</item>
-        <item name="colorOnSecondary">@color/nord4</item>
+        <item name="colorOnSecondary">@color/nord13</item>
         <!-- Status bar color. -->
         <item name="android:statusBarColor">?attr/colorPrimaryVariant</item>
         <item name="fontFamily">@font/hyperlegible</item>

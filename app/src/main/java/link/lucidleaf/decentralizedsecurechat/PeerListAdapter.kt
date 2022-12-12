@@ -37,10 +37,11 @@ class PeerListAdapter(
     override fun onBindViewHolder(viewHolder: PeerViewHolder, position: Int) {
         // Get element from your dataset at this position and replace the
         // contents of the view with that element
-        val peer = dataSet[position]
-        viewHolder.textView.text = peer.name
+        val user = dataSet[position]
+
+        viewHolder.textView.text = user.nickName
         viewHolder.textView.setOnClickListener {
-            activity.openChat(peer)
+            activity.openChat(user)
         }
     }
 
