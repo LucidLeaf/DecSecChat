@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
+import android.net.wifi.p2p.WifiP2pDevice
 import android.net.wifi.p2p.WifiP2pDeviceList
 import android.net.wifi.p2p.WifiP2pManager
 import android.os.Bundle
@@ -23,14 +24,15 @@ import androidx.recyclerview.widget.RecyclerView
 //most functionality here is based on https://developer.android.com/guide/topics/connectivity/wifip2p#create-application
 class MainActivity : AppCompatActivity() {
     // ux stuff
-    var btnDiscoverPeers: Button? = null
-    var icWifi: ImageView? = null
-    var icLocation: ImageView? = null
-    var recyclerView: RecyclerView? = null
-    var txtThisName: TextView? = null
-    var thisUser: User? = null
+    private var btnDiscoverPeers: Button? = null
+    private var icWifi: ImageView? = null
+    private var icLocation: ImageView? = null
+    private var recyclerView: RecyclerView? = null
+    private var txtThisName: TextView? = null
+    private var thisUser: User? = null
+    private var peerDeviceList: WifiP2pDeviceList? = null
 
-    // wifi p2p stuff
+    // wifi p2p functionality
     private val manager: WifiP2pManager? by lazy(LazyThreadSafetyMode.NONE) {
         getSystemService(Context.WIFI_P2P_SERVICE) as WifiP2pManager?
     }
@@ -52,7 +54,18 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         //initialize stuffs
-        thisUser = User(android.os.Build.MODEL, 0, "this phone")
+        initializeElements()
+
+        requestLocationPermissions()
+        enableLocation()
+    }
+
+    private fun initializeElements() {
+        val device = WifiP2pDevice()
+        device.deviceName = android.os.Build.MODEL
+        thisUser = User(
+            device
+        )
         txtThisName = findViewById(R.id.txtThisName)
         txtThisName?.text = thisUser!!.name
         btnDiscoverPeers = findViewById(R.id.btnDiscoverPeers)
@@ -62,18 +75,17 @@ class MainActivity : AppCompatActivity() {
         icWifi = findViewById(R.id.icWifi)
         icLocation = findViewById(R.id.icLocation)
         recyclerView = findViewById(R.id.peerList)
-
-        displayPeers(Array(10) { i -> "Test Peer $i" })
+        displayPeers(emptyArray())
         recyclerView?.layoutManager = LinearLayoutManager(this)
-
-        requestLocationPermissions()
-        //todo turn on location service
-
         // enable receiving p2p events
         channel = manager?.initialize(this, mainLooper, null)
         channel?.also { channel ->
             receiver = manager?.let { P2pBroadcastReceiver(it, channel, this) }
         }
+    }
+
+    private fun enableLocation() {
+        //todo implement enabling location
     }
 
     private fun requestLocationPermissions() {
@@ -171,20 +183,20 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun handlePeerListChange(peers: WifiP2pDeviceList) {
-        val peerNames: Array<String> =
-            peers.deviceList.map { wifiP2pDevice -> wifiP2pDevice.deviceName }.toTypedArray()
-        displayPeers(peerNames)
+        peerDeviceList = peers
+        val users: Array<User> = peers.deviceList.map {d -> User(d)}.toTypedArray()
+        displayPeers(users)
     }
 
-    private fun displayPeers(peers: Array<String>) {
-        val peerList = PeerListAdapter(peers, this)
-        recyclerView?.adapter = peerList
+    private fun displayPeers(peerDevices: Array<User>) {
+        val namesList = PeerListAdapter(peerDevices, this)
+        recyclerView?.adapter = namesList
     }
 
-    fun openChat(peer: String) {
-        println("Opening chat with $peer")
+    fun openChat(user: User) {
+        println("Opening chat with ${user.name}")
         val chatIntent = Intent(this, ChatActivity::class.java)
-        chatIntent.putExtra("peerName", peer)
+        chatIntent.putExtra("peerName", user.name)
         startActivity(chatIntent)
     }
 }

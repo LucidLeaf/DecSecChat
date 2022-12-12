@@ -7,7 +7,7 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 
 class PeerListAdapter(
-    private val dataSet: Array<String>,
+    private val dataSet: Array<User>,
     private val activity: MainActivity,
 ) :
     RecyclerView.Adapter<PeerListAdapter.PeerViewHolder>() {
@@ -23,7 +23,6 @@ class PeerListAdapter(
             // Define click listener for the ViewHolder's View.
             textView = view.findViewById(R.id.peerListName)
         }
-
     }
 
     // Create new views (invoked by the layout manager)
@@ -31,17 +30,15 @@ class PeerListAdapter(
         // Create a new view, which defines the UI of the list item
         val view = LayoutInflater.from(viewGroup.context)
             .inflate(R.layout.peer_list_peer_name, viewGroup, false)
-
         return PeerViewHolder(view)
     }
 
     // Replace the contents of a view (invoked by the layout manager)
     override fun onBindViewHolder(viewHolder: PeerViewHolder, position: Int) {
-
         // Get element from your dataset at this position and replace the
         // contents of the view with that element
         val peer = dataSet[position]
-        viewHolder.textView.text = peer
+        viewHolder.textView.text = peer.name
         viewHolder.textView.setOnClickListener {
             activity.openChat(peer)
         }
