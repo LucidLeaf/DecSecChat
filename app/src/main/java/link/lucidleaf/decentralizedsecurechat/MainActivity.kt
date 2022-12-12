@@ -18,6 +18,7 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 
 
 private const val LOCATION_REQUEST = 1
@@ -28,6 +29,7 @@ const val EXTRA_USER_ARRAY = "peerName"
 class MainActivity : AppCompatActivity() {
     // ux stuff
     private var btnDiscoverPeers: Button? = null
+    private var pullDisover: SwipeRefreshLayout? = null
     private var icWifi: ImageView? = null
     private var icLocation: ImageView? = null
     private var recyclerView: RecyclerView? = null
@@ -65,9 +67,9 @@ class MainActivity : AppCompatActivity() {
     private fun initializeElements() {
         thisUser = User.getCurrentUser()
         txtThisName = findViewById(R.id.txtThisName)
-        txtThisName?.text = thisUser!!.name
-        btnDiscoverPeers = findViewById(R.id.btnDiscoverPeers)
-        btnDiscoverPeers?.setOnClickListener {
+        txtThisName?.text = thisUser!!.nickName
+        pullDisover = findViewById(R.id.pullToRefresh)
+        pullDisover?.setOnRefreshListener {
             discoverPeers()
             displayPeers(arrayOf(User.getTemplateUser()))
         }
@@ -129,10 +131,12 @@ class MainActivity : AppCompatActivity() {
         manager?.discoverPeers(channel, object : WifiP2pManager.ActionListener {
             override fun onSuccess() {
                 println("Discovering peers")
+                pullDisover?.isRefreshing = false
             }
 
             override fun onFailure(reasonCode: Int) {
                 println("Failed discovering peers: $reasonCode")
+                pullDisover?.isRefreshing = false
             }
         })
     }

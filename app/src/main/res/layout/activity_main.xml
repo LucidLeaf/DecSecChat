@@ -6,20 +6,34 @@
     android:layout_height="match_parent"
     tools:context=".MainActivity">
 
-    <Button
-        android:id="@+id/btnDiscoverPeers"
+    <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+        android:id="@+id/pullToRefresh"
         style="@style/Theme.DecentralizedSecureChat"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginStart="8dp"
         android:layout_marginTop="8dp"
-        android:layout_marginBottom="8dp"
-        android:text="Discover Peers"
-        android:textSize="16sp"
-        android:textStyle="bold"
+        android:layout_marginEnd="8dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/peerList" />
+        app:layout_constraintTop_toBottomOf="@+id/icWifi">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/peerList"
+            style="@style/Theme.DecentralizedSecureChat"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_marginStart="8dp"
+            android:layout_marginTop="8dp"
+            android:layout_marginEnd="8dp"
+            android:layout_marginBottom="8dp"
+            app:layout_constraintBottom_toTopOf="@+id/btnDiscoverPeers"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/icWifi"
+            tools:listitem="@layout/peer_list_peer_name" />
+    </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
     <ImageView
         android:id="@+id/icWifi"
@@ -37,26 +51,9 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="8dp"
         android:layout_marginTop="8dp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toEndOf="@+id/icWifi"
         app:layout_constraintTop_toTopOf="parent"
         app:srcCompat="@drawable/ic_location_off" />
-
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/peerList"
-        style="@style/Theme.DecentralizedSecureChat"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:layout_marginStart="8dp"
-        android:layout_marginTop="8dp"
-        android:layout_marginEnd="8dp"
-        android:layout_marginBottom="8dp"
-        app:layout_constraintBottom_toTopOf="@+id/btnDiscoverPeers"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/icWifi"
-        tools:listitem="@layout/peer_list_peer_name" />
 
     <TextView
         android:id="@+id/txtThisName"
@@ -64,14 +61,12 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="8dp"
-        android:layout_marginTop="8dp"
         android:layout_marginEnd="8dp"
         android:layout_marginBottom="8dp"
         android:text="thisName"
-        android:textSize="24sp"
-        app:layout_constraintBottom_toTopOf="@+id/peerList"
+        android:textSize="@dimen/text_Large"
+        app:layout_constraintBottom_toTopOf="@+id/pullToRefresh"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toEndOf="@+id/icLocation"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintStart_toEndOf="@+id/icLocation" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

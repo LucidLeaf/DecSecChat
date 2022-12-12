@@ -21,7 +21,7 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:textAlignment="viewStart"
-        android:textSize="24sp"
+        android:textSize="@dimen/text_Large"
         android:textStyle="bold"
         tools:text="@tools:sample/first_names" />
   </androidx.cardview.widget.CardView>

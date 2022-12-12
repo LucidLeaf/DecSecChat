@@ -14,7 +14,7 @@ class User(val device: WifiP2pDevice) {
         fun getCurrentUser(): User {
             val user = User(WifiP2pDevice())
             user.device.deviceName = android.os.Build.MODEL
-            user.nickName = "You"
+            user.nickName = "You 🐼"
             return user
         }
 

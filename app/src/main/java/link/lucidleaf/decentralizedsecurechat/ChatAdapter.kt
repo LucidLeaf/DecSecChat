@@ -84,19 +84,16 @@ class ChatAdapter(context: Context, messageList: List<Message>) :
         RecyclerView.ViewHolder(itemView) {
         var messageText: TextView
         var timeText: TextView
-        var nameText: TextView
 
         init {
             messageText = itemView.findViewById(R.id.text_gchat_message_other)
             timeText = itemView.findViewById(R.id.text_gchat_timestamp_other)
-            nameText = itemView.findViewById(R.id.text_gchat_user_other)
         }
 
         fun bind(message: Message) {
             messageText.text = message.body
             // Format the stored timestamp into a readable String using method.
             timeText.text = formatCalendarTime(message.createdAt)
-            nameText.text = message.sender.nickName
         }
     }
 

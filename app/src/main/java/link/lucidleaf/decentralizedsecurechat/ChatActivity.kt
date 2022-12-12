@@ -32,7 +32,7 @@ class ChatActivity : AppCompatActivity() {
         updateMessages()
 
         txtPeerName = findViewById(R.id.txtChatPeerName)
-        txtPeerName?.text = otherUser?.name
+        txtPeerName?.text = otherUser?.nickName
 
         txtMessage = findViewById(R.id.txtMessage)
 
