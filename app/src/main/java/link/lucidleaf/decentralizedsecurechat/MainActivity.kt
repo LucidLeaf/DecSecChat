@@ -20,6 +20,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 
 
+//most functionality here is based on https://developer.android.com/guide/topics/connectivity/wifip2p#create-application
 class MainActivity : AppCompatActivity() {
     // ux stuff
     var btnDiscoverPeers: Button? = null

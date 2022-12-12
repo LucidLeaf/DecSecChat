@@ -8,6 +8,7 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 
 
+//credit goes to https://sendbird.com/developer/tutorials/android-chat-tutorial-building-a-messaging-ui
 class MessageListAdapter(context: Context, messageList: List<Message>) :
     RecyclerView.Adapter<RecyclerView.ViewHolder>() {
     private val mContext: Context
