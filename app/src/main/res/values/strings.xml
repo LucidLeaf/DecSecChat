@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">Decentralizd Secure Chat</string>
+    <string name="pull_to_discover_tooltip">Pull down to discover peers</string>
 </resources>

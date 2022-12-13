@@ -20,21 +20,21 @@ class P2pBroadcastReceiver(
 
     override fun onReceive(context: Context, intent: Intent) {
 
-        val action: String? = intent.action
-        when (action) {
+        when (intent.action) {
             WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION -> {
                 // Check to see if Wi-Fi is enabled and notify appropriate activity
-                val state = intent.getIntExtra(WifiP2pManager.EXTRA_WIFI_STATE, -1)
-                when (state) {
+                when (intent.getIntExtra(WifiP2pManager.EXTRA_WIFI_STATE, -1)) {
                     WifiP2pManager.WIFI_P2P_STATE_ENABLED -> {
                         // Wifi P2P is enabled
                         println("P2P enabled")
-                        activity.setIcon(MainActivity.Icons.WIFI, true)
+                        activity.wifiEnabled = true
+                        activity.updateIcon(MainActivity.Icons.WIFI)
                     }
                     else -> {
                         // Wi-Fi P2P is not enabled
                         println("P2P disabled")
-                        activity.setIcon(MainActivity.Icons.WIFI, false)
+                        activity.wifiEnabled = false
+                        activity.updateIcon(MainActivity.Icons.WIFI)
                     }
                 }
             }
@@ -50,17 +50,15 @@ class P2pBroadcastReceiver(
                 }
                 manager.requestPeers(channel) { peers: WifiP2pDeviceList? ->
                     // Handle peers list
-                    println("Peers found:\n$peers")
-                    if (peers != null) {
+                    if (peers != null)
                         activity.handlePeerListChange(peers)
-                    }
                 }
             }
             WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION -> {
                 // Respond to new connection or disconnections
                 // Android 10 or higher (non-sticky): can use requestConnectionInfo(),
                 //   requestNetworkInfo(), or requestGroupInfo() to retrieve the current connection information.
-
+                println("Connection established")
             }
             WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION -> {
                 // Respond to this device's wifi state changing

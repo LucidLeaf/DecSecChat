@@ -5,33 +5,17 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <TextView
-        android:id="@+id/txtChatPeerName"
-        style="@style/Theme.DecentralizedSecureChat"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:layout_marginBottom="8dp"
-        android:text="peerName"
-        android:textSize="@dimen/text_Large"
-        android:textStyle="bold"
-        app:layout_constraintBottom_toTopOf="@+id/recyclerChatMessages"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
-
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recyclerChatMessages"
         android:layout_width="409dp"
         android:layout_height="0dp"
         android:layout_marginStart="1dp"
-        android:layout_marginEnd="1dp"
         android:foregroundGravity="top"
         app:layout_constraintBottom_toTopOf="@+id/txtMessage"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="1.0"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/txtChatPeerName"
+        app:layout_constraintTop_toBottomOf="@+id/toolbarChat"
         app:stackFromEnd="true"
         tools:listitem="@layout/chat_from_me">
 
@@ -72,4 +56,16 @@
         app:layout_constraintEnd_toStartOf="@+id/btnSend"
         app:layout_constraintStart_toStartOf="parent"
         tools:text="Enter message..." />
+
+    <androidx.appcompat.widget.Toolbar
+        android:id="@+id/toolbarChat"
+        android:layout_width="411dp"
+        android:layout_height="54dp"
+        android:background="?attr/colorPrimary"
+        android:minHeight="?attr/actionBarSize"
+        android:theme="?attr/actionBarTheme"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:menu="@menu/menu_chat_activity" />
 </androidx.constraintlayout.widget.ConstraintLayout>

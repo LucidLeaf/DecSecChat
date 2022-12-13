@@ -12,10 +12,9 @@ class User(val device: WifiP2pDevice) {
 
     companion object {
         fun getCurrentUser(): User {
-            val user = User(WifiP2pDevice())
-            user.device.deviceName = android.os.Build.MODEL
-            user.nickName = "You 🐼"
-            return user
+            val device = WifiP2pDevice()
+            device.deviceName = android.os.Build.MODEL
+            return User(device)
         }
 
         fun getTemplateUser(): User {
@@ -36,8 +35,8 @@ class User(val device: WifiP2pDevice) {
             return false
         if (otherUser.name != this.name)
             return false
-        if (otherUser.nickName != this.nickName)
-            return false
+//        if (otherUser.nickName != this.nickName)
+//            return false
         return true
     }
 
