@@ -84,6 +84,13 @@ class ChatActivity : AppCompatActivity() {
     override fun onPause() {
         super.onPause()
         MessagesAndUsersDB.unsubscribeUpdates(this)
+        println("Chat with ${otherUser?.nickName} paused")
+    }
+
+    override fun onStop() {
+        super.onStop()
+        println("Chat with ${otherUser?.nickName} stopped")
+
     }
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
@@ -122,6 +129,7 @@ class ChatActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
         //todo close connection
+        println("Chat with ${otherUser?.nickName}")
     }
 
 }

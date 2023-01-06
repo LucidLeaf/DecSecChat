@@ -26,13 +26,11 @@ class P2pBroadcastReceiver(
                 when (intent.getIntExtra(WifiP2pManager.EXTRA_WIFI_STATE, -1)) {
                     WifiP2pManager.WIFI_P2P_STATE_ENABLED -> {
                         // Wifi P2P is enabled
-                        println("P2P enabled")
                         activity.wifiEnabled = true
                         activity.updateIcon(MainActivity.Icons.WIFI)
                     }
                     else -> {
                         // Wi-Fi P2P is not enabled
-                        println("P2P disabled")
                         activity.wifiEnabled = false
                         activity.updateIcon(MainActivity.Icons.WIFI)
                     }
@@ -58,13 +56,13 @@ class P2pBroadcastReceiver(
                 // Respond to new connection or disconnections
                 // Android 10 or higher (non-sticky): can use requestConnectionInfo(),
                 //   requestNetworkInfo(), or requestGroupInfo() to retrieve the current connection information.
-                println("Connection established")
+                println("P2PBroadCastReceiver: Connection changed")
             }
             WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION -> {
                 // Respond to this device's wifi state changing
                 // Android 10 or higher (non-sticky): Applications can use requestDeviceInfo() to
                 //  retrieve the current connection information.
-
+                println("P2PBroadCastReceiver: This device changed")
             }
         }
     }
