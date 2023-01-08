@@ -71,7 +71,7 @@ class MainActivity : AppCompatActivity() {
         pullDiscover = findViewById(R.id.pullToRefresh)
         pullDiscover?.setOnRefreshListener {
             discoverPeers()
-//            displayPeers(arrayOf(User.getTemplateUser()))
+
         }
         recyclerView = findViewById(R.id.peerList)
         recyclerView?.layoutManager = LinearLayoutManager(this)
@@ -96,13 +96,11 @@ class MainActivity : AppCompatActivity() {
 
     private fun enableWifi() {
         println("Enabling Wifi")
-        Toast.makeText(this, "Enabling Wifi", Toast.LENGTH_SHORT).show()
         //todo implement enabling wifi
     }
 
     private fun enableLocation() {
         println("Enabling Location")
-        Toast.makeText(this, "Enabling Location", Toast.LENGTH_SHORT).show()
         requestLocationPermissions()
         //todo implement enabling location
         val locationRequest = LocationRequest.create()
@@ -161,7 +159,6 @@ class MainActivity : AppCompatActivity() {
         manager?.discoverPeers(channel, object : WifiP2pManager.ActionListener {
             override fun onSuccess() {
                 println("Discovering peers")
-                pullDiscover?.isRefreshing = false
             }
 
             override fun onFailure(reasonCode: Int) {
@@ -179,6 +176,7 @@ class MainActivity : AppCompatActivity() {
     fun handlePeerListChange(peers: WifiP2pDeviceList) {
         val users: Array<User> = peers.deviceList.map { d -> User(d) }.toTypedArray()
         displayPeers(users)
+        pullDiscover?.isRefreshing = false
     }
 
     private fun displayPeers(peerDevices: Array<User>) {
@@ -276,10 +274,12 @@ class MainActivity : AppCompatActivity() {
         when (item.itemId) {
             R.id.menuWifi -> {
                 enableWifi()
+                Toast.makeText(this, "Enabling Wifi", Toast.LENGTH_SHORT).show()
                 true
             }
             R.id.menuLocation -> {
                 enableLocation()
+                Toast.makeText(this, "Enabling Location", Toast.LENGTH_SHORT).show()
                 true
             }
             else -> super.onOptionsItemSelected(item)
