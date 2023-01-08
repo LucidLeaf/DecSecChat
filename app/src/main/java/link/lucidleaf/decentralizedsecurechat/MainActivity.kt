@@ -217,6 +217,21 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    //cancel all actions
+    override fun onBackPressed() {
+        pullDiscover?.isRefreshing = false
+        manager?.cancelConnect(channel, object : WifiP2pManager.ActionListener {
+            override fun onSuccess() = Unit
+
+            override fun onFailure(p0: Int) = Unit
+        })
+        manager?.stopPeerDiscovery(channel, object: WifiP2pManager.ActionListener{
+            override fun onSuccess() = Unit
+
+            override fun onFailure(p0: Int) = Unit
+        })
+    }
+
     /* register the broadcast receiver with the intent values to be matched */
     override fun onResume() {
         super.onResume()
@@ -284,4 +299,6 @@ class MainActivity : AppCompatActivity() {
             }
             else -> super.onOptionsItemSelected(item)
         }
+
+
 }
