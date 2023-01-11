@@ -59,7 +59,6 @@ class ChatActivity : AppCompatActivity() {
         }
     }
 
-
     private fun trimWhiteSpace(string: String): String {
         var rString: String = string
         while (rString.endsWith(" ") || rString.endsWith("\n"))
@@ -90,7 +89,6 @@ class ChatActivity : AppCompatActivity() {
     override fun onStop() {
         super.onStop()
         println("Chat with ${otherUser?.nickName} stopped")
-
     }
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
