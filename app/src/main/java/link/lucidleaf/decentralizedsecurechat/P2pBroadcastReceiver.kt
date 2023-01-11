@@ -1,13 +1,10 @@
 package link.lucidleaf.decentralizedsecurechat
 
-import android.Manifest
+import android.annotation.SuppressLint
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
-import android.net.wifi.p2p.WifiP2pDeviceList
 import android.net.wifi.p2p.WifiP2pManager
-import androidx.core.app.ActivityCompat
 
 /**
  * A BroadcastReceiver that notifies of important Wi-Fi p2p events.
@@ -18,6 +15,7 @@ class P2pBroadcastReceiver(
     private val activity: MainActivity
 ) : BroadcastReceiver() {
 
+    @SuppressLint("MissingPermission")
     override fun onReceive(context: Context, intent: Intent) {
 
         when (intent.action) {
@@ -26,31 +24,18 @@ class P2pBroadcastReceiver(
                 when (intent.getIntExtra(WifiP2pManager.EXTRA_WIFI_STATE, -1)) {
                     WifiP2pManager.WIFI_P2P_STATE_ENABLED -> {
                         // Wifi P2P is enabled
-                        activity.wifiEnabled = true
+                        activity.wifiP2pActive = true
                         activity.updateIcon(MainActivity.Icons.WIFI)
                     }
                     else -> {
                         // Wi-Fi P2P is not enabled
-                        activity.wifiEnabled = false
+                        activity.wifiP2pActive = false
                         activity.updateIcon(MainActivity.Icons.WIFI)
                     }
                 }
             }
             WifiP2pManager.WIFI_P2P_PEERS_CHANGED_ACTION -> {
-                // Call WifiP2pManager.requestPeers() to get a list of current peers
-                if (ActivityCompat.checkSelfPermission(
-                        context,
-                        Manifest.permission.ACCESS_FINE_LOCATION
-                    ) != PackageManager.PERMISSION_GRANTED
-                ) {
-                    println("Permission not granted")
-                    return
-                }
-                manager.requestPeers(channel) { peers: WifiP2pDeviceList? ->
-                    // Handle peers list
-                    if (peers != null)
-                        activity.handlePeerListChange(peers)
-                }
+                manager.requestPeers(channel, activity.peerListListener)
             }
             WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION -> {
                 // Respond to new connection or disconnections

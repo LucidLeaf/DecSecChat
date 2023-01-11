@@ -1,5 +1,6 @@
 package link.lucidleaf.decentralizedsecurechat
 
+import android.net.wifi.p2p.WifiP2pDevice
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -7,7 +8,7 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 
 class PeerListAdapter(
-    private val dataSet: Array<User>,
+    private val dataSet: MutableList<WifiP2pDevice>,
     private val activity: MainActivity,
 ) :
     RecyclerView.Adapter<PeerListAdapter.PeerViewHolder>() {
@@ -37,7 +38,7 @@ class PeerListAdapter(
     override fun onBindViewHolder(viewHolder: PeerViewHolder, position: Int) {
         // Get element from your dataset at this position and replace the
         // contents of the view with that element
-        val user = dataSet[position]
+        val user = User(dataSet[position])
 
         viewHolder.textView.text = user.nickName
         viewHolder.textView.setOnClickListener {

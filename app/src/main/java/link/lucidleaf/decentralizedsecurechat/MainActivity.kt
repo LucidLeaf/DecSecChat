@@ -1,13 +1,15 @@
 package link.lucidleaf.decentralizedsecurechat
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.*
+import android.content.ContentValues.TAG
 import android.content.pm.PackageManager
 import android.net.wifi.p2p.WifiP2pConfig
 import android.net.wifi.p2p.WifiP2pDevice
-import android.net.wifi.p2p.WifiP2pDeviceList
 import android.net.wifi.p2p.WifiP2pManager
 import android.os.Bundle
+import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import android.widget.TextView
@@ -17,9 +19,7 @@ import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
-import com.google.android.gms.common.api.ResolvableApiException
 import com.google.android.gms.location.*
-import com.google.android.gms.tasks.Task
 
 private const val LOCATION_REQUEST = 1
 
@@ -30,12 +30,16 @@ class MainActivity : AppCompatActivity() {
     // ux stuff
     private var pullDiscover: SwipeRefreshLayout? = null
     private var txtToolTip: TextView? = null
-    var wifiEnabled = false
+    var wifiP2pActive = false
+    //todo check if wifi is enabled
+    var wifiEnabled = true
     var locationPermission = false
-    var locationEnabled = false
+    //tod check if location is enabled
+    var locationEnabled = true
     private var recyclerView: RecyclerView? = null
     private var thisUser: User? = null
     private var menu: Menu? = null
+
 
     // wifi p2p functionality
     private val manager: WifiP2pManager? by lazy(LazyThreadSafetyMode.NONE) {
@@ -49,6 +53,25 @@ class MainActivity : AppCompatActivity() {
         addAction(WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION)
         addAction(WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION)
     }
+    private val peers = mutableListOf<WifiP2pDevice>()
+
+    @SuppressLint("NotifyDataSetChanged")
+    val peerListListener = WifiP2pManager.PeerListListener { peerList ->
+        val refreshedPeers = peerList.deviceList
+        if (refreshedPeers != peers) {
+            peers.clear()
+            peers.addAll(refreshedPeers)
+            recyclerView?.adapter?.notifyDataSetChanged()
+            pullDiscover?.isRefreshing = false
+            txtToolTip?.text = ""
+        }
+
+        if (peers.isEmpty()) {
+            Log.d(TAG, "No devices found")
+            txtToolTip?.text = getString(R.string.pull_to_discover_tooltip)
+            return@PeerListListener
+        }
+    }
 
     enum class Icons {
         WIFI, LOCATION
@@ -60,8 +83,6 @@ class MainActivity : AppCompatActivity() {
 
         initializeElements()
         requestLocationPermissions()
-        enableLocation()
-        enableWifi()
     }
 
     private fun initializeElements() {
@@ -69,13 +90,14 @@ class MainActivity : AppCompatActivity() {
         thisUser = User.getCurrentUser()
         txtToolTip = findViewById(R.id.txtRefreshTip)
         pullDiscover = findViewById(R.id.pullToRefresh)
-        pullDiscover?.setOnRefreshListener {
-            discoverPeers()
-
-        }
+        pullDiscover?.setOnRefreshListener { discoverPeers() }
         recyclerView = findViewById(R.id.peerList)
         recyclerView?.layoutManager = LinearLayoutManager(this)
-        displayPeers(emptyArray())
+        recyclerView?.adapter = PeerListAdapter(peers, this)
+        //show hint if no devices available
+        txtToolTip?.text = if (peers.isEmpty()) {
+            getString(R.string.pull_to_discover_tooltip)
+        } else ""
         // enable receiving p2p events
         channel = manager?.initialize(this, mainLooper, null)
         channel?.also { channel ->
@@ -84,62 +106,21 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun requestLocationPermissions() {
-//        if (ContextCompat.checkSelfPermission(
-//                this, Manifest.permission.ACCESS_FINE_LOCATION
-//            ) != PackageManager.PERMISSION_GRANTED
-//        ) {
-//            locationEnabled = false
-        requestPermissions(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION), LOCATION_REQUEST)
-//        }
-//        else locationEnabled = true
-    }
-
-    private fun enableWifi() {
-        println("Enabling Wifi")
-        //todo implement enabling wifi
-    }
-
-    private fun enableLocation() {
-        println("Enabling Location")
-        requestLocationPermissions()
-        //todo implement enabling location
-        val locationRequest = LocationRequest.create()
-        locationRequest.interval = 10000
-        locationRequest.fastestInterval = 5000
-        locationRequest.priority = LocationRequest.PRIORITY_HIGH_ACCURACY
-
-        val builder = LocationSettingsRequest.Builder()
-        val client: SettingsClient = LocationServices.getSettingsClient(this)
-        val task: Task<LocationSettingsResponse> = client.checkLocationSettings(builder.build())
-        task.addOnSuccessListener { locationSettingsResponse ->
-            // All location settings are satisfied. The client can initialize
-            // location requests here.
-            // ...
-            locationEnabled = true
-            println("Location enabled")
+        val requiredPermission = Manifest.permission.ACCESS_FINE_LOCATION
+        val granted = applicationContext.checkCallingOrSelfPermission(requiredPermission)
+        if (granted == PackageManager.PERMISSION_GRANTED) {
+            locationPermission = true
+        } else {
+            locationPermission = false
+            requestPermissions(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION), LOCATION_REQUEST)
         }
-
-        task.addOnFailureListener { exception ->
-            if (exception is ResolvableApiException) {
-                // Location settings are not satisfied, but this can be fixed
-                // by showing the user a dialog.
-                try {
-                    // Show the dialog by calling startResolutionForResult(),
-                    // and check the result in onActivityResult().
-                    exception.startResolutionForResult(
-                        this@MainActivity,
-                        0x1
-                    )
-                } catch (sendEx: IntentSender.SendIntentException) {
-                    // Ignore the error.
-                }
-            }
-        }
+        updateIcon(Icons.LOCATION)
     }
+
 
     fun updateIcon(icon: Icons) {
         when (icon) {
-            Icons.WIFI -> if (wifiEnabled)
+            Icons.WIFI -> if (wifiP2pActive && wifiEnabled)
                 menu?.findItem(R.id.menuWifi)?.setIcon(R.drawable.ic_wifi_on)
             else
                 menu?.findItem(R.id.menuWifi)?.setIcon(R.drawable.ic_wifi_off)
@@ -150,22 +131,15 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    @SuppressLint("MissingPermission")
     private fun discoverPeers() {
-        if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            Toast.makeText(this, "Requires Location Services", Toast.LENGTH_SHORT).show()
-            println("Location permissions not granted")
-            return
-        }
         manager?.discoverPeers(channel, object : WifiP2pManager.ActionListener {
-            override fun onSuccess() {
-                println("Discovering peers")
-            }
+            override fun onSuccess() {}
 
             override fun onFailure(reasonCode: Int) {
-                println("Failed discovering peers: $reasonCode")
                 Toast.makeText(
                     this@MainActivity,
-                    "Failed: $reasonCode, permissions insufficient",
+                    "Failed to discover ($reasonCode)",
                     Toast.LENGTH_SHORT
                 ).show()
                 pullDiscover?.isRefreshing = false
@@ -173,21 +147,8 @@ class MainActivity : AppCompatActivity() {
         })
     }
 
-    fun handlePeerListChange(peers: WifiP2pDeviceList) {
-        val users: Array<User> = peers.deviceList.map { d -> User(d) }.toTypedArray()
-        displayPeers(users)
-        pullDiscover?.isRefreshing = false
-    }
-
-    private fun displayPeers(peerDevices: Array<User>) {
-        val namesList = PeerListAdapter(peerDevices, this)
-        recyclerView?.adapter = namesList
-        txtToolTip?.text = if (peerDevices.isEmpty()) {
-            getString(R.string.pull_to_discover_tooltip)
-        } else ""
-    }
-
     fun openChat(user: User) {
+        // todo establish connection and provide connection to chat activity
         println("Connecting to chat with ${user.nickName}")
         val device: WifiP2pDevice = user.device
         val config = WifiP2pConfig()
@@ -206,7 +167,6 @@ class MainActivity : AppCompatActivity() {
                 }
 
                 override fun onFailure(reason: Int) {
-                    //failure logic
                     Toast.makeText(
                         this@MainActivity,
                         "Unable to connect to ${user.nickName}",
@@ -223,12 +183,12 @@ class MainActivity : AppCompatActivity() {
         manager?.cancelConnect(channel, object : WifiP2pManager.ActionListener {
             override fun onSuccess() = Unit
 
-            override fun onFailure(p0: Int) = Unit
+            override fun onFailure(reason: Int) = Unit
         })
-        manager?.stopPeerDiscovery(channel, object: WifiP2pManager.ActionListener{
+        manager?.stopPeerDiscovery(channel, object : WifiP2pManager.ActionListener {
             override fun onSuccess() = Unit
 
-            override fun onFailure(p0: Int) = Unit
+            override fun onFailure(reason: Int) = Unit
         })
     }
 
@@ -238,6 +198,7 @@ class MainActivity : AppCompatActivity() {
         receiver?.also { receiver ->
             registerReceiver(receiver, intentFilter)
         }
+        discoverPeers()
     }
 
     /* unregister the broadcast receiver */
@@ -274,12 +235,10 @@ class MainActivity : AppCompatActivity() {
                 ) {
                     println("Location Permission Granted")
                     locationPermission = true
-                    updateIcon(Icons.LOCATION)
                 }
             } else {
                 println("Location Permission Denied")
                 locationPermission = false
-                updateIcon(Icons.LOCATION)
             }
             return
         }
@@ -288,17 +247,25 @@ class MainActivity : AppCompatActivity() {
     override fun onOptionsItemSelected(item: MenuItem): Boolean =
         when (item.itemId) {
             R.id.menuWifi -> {
-                enableWifi()
-                Toast.makeText(this, "Enabling Wifi", Toast.LENGTH_SHORT).show()
+                if (!wifiEnabled || !wifiP2pActive)
+                    Toast.makeText(this, "enable Wifi for usage", Toast.LENGTH_SHORT)
+                        .show()
+                else Toast.makeText(this, "no action required", Toast.LENGTH_SHORT)
+                    .show()
                 true
             }
             R.id.menuLocation -> {
-                enableLocation()
-                Toast.makeText(this, "Enabling Location", Toast.LENGTH_SHORT).show()
+                if (!locationEnabled || !locationPermission)
+                    Toast.makeText(
+                        this,
+                        "enable location and provide permission",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                else Toast.makeText(this, "no action required", Toast.LENGTH_SHORT)
+                    .show()
                 true
             }
             else -> super.onOptionsItemSelected(item)
         }
-
 
 }
