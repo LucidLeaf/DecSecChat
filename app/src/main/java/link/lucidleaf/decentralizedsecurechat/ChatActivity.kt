@@ -1,18 +1,14 @@
 package link.lucidleaf.decentralizedsecurechat
 
+import android.net.wifi.p2p.WifiP2pDevice
 import android.os.Bundle
-import android.text.Editable
 import android.view.Menu
-import android.view.MenuItem
 import android.view.View
-import android.widget.EditText
 import android.widget.ImageView
 import android.widget.TextView
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import java.util.*
 
 
 class ChatActivity : AppCompatActivity() {
@@ -21,7 +17,7 @@ class ChatActivity : AppCompatActivity() {
     private var btnSend: ImageView? = null
     private var recyclerChat: RecyclerView? = null
     private var chatAdapter: ChatAdapter? = null
-    var otherUser: User? = null
+    var otherDevice: WifiP2pDevice? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -46,14 +42,9 @@ class ChatActivity : AppCompatActivity() {
             if (body == "")
                 return@setOnClickListener
             txtMessage?.text = ""
-            MessagesAndUsersDB.addMessage(
-                Message(
-                    User.getCurrentUser(),
-                    otherUser!!,
-                    body,
-                    Calendar.getInstance().time
-                )
-            )
+            otherDevice?.let {
+                DataBase.addMessage(Message(it, true, body))
+            }
         }
     }
 
@@ -66,60 +57,33 @@ class ChatActivity : AppCompatActivity() {
         return rString
     }
 
-    fun updateMessages() {
-        val messageList = MessagesAndUsersDB.getMessages(otherUser!!)
-        chatAdapter = ChatAdapter(this, messageList!!)
+    fun updateMessages(otherDevice: WifiP2pDevice) {
+        val messageList = DataBase.getMessages(otherDevice)
+        chatAdapter = ChatAdapter(this, messageList)
         recyclerChat!!.adapter = chatAdapter
         recyclerChat!!.smoothScrollToPosition(messageList.size)
-    }
-
-    override fun onResume() {
-        super.onResume()
-        MessagesAndUsersDB.subscribeToUpdates(this)
-    }
-
-    override fun onPause() {
-        super.onPause()
-        MessagesAndUsersDB.unsubscribeUpdates(this)
-        println("Chat with ${otherUser?.nickName} paused")
-    }
-
-    override fun onStop() {
-        super.onStop()
-        println("Chat with ${otherUser?.nickName} stopped")
     }
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
         this.menu = menu
         menuInflater.inflate(R.menu.menu_chat_activity, menu)
-        title = otherUser?.nickName
+        title = otherDevice?.deviceName
         return super.onCreateOptionsMenu(menu)
     }
 
-    override fun onOptionsItemSelected(item: MenuItem): Boolean = when (item.itemId) {
-        R.id.menuChangeNickname -> {
-            val alert: AlertDialog.Builder = AlertDialog.Builder(this)
+    override fun onResume() {
+        println("Chat with ${otherDevice?.deviceName} resumed")
+        super.onResume()
+    }
 
-            alert.setTitle("Change nickname of ${otherUser?.nickName}")
-//            alert.setMessage("New Name")
+    override fun onPause() {
+        println("Chat with ${otherDevice?.deviceName} paused")
+        super.onPause()
+    }
 
-            // Set an EditText view to get user input
-            val input = EditText(this)
-            input.setText(otherUser?.nickName)
-            alert.setView(input)
-            alert.setPositiveButton("Ok") { dialog, whichButton ->
-                val value: Editable? = input.text
-                // Do something with value!
-                otherUser?.nickName = value.toString()
-                title = otherUser?.nickName
-            }
-            alert.setNegativeButton("Cancel") { dialog, whichButton ->
-                // Canceled.
-            }
-            alert.show()
-            true
-        }
-        else -> super.onOptionsItemSelected(item)
+    override fun onStop() {
+        println("Chat with ${otherDevice?.deviceName} stopped")
+        super.onStop()
     }
 
     override fun onDestroy() {
@@ -127,8 +91,6 @@ class ChatActivity : AppCompatActivity() {
         println("Chat with ${otherDevice?.deviceName} destroyed")
         Box.remove(intent)
         super.onDestroy()
-        //todo close connection
-        println("Chat with ${otherUser?.nickName}")
     }
 
 }
