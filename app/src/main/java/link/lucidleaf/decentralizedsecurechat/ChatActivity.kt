@@ -32,16 +32,14 @@ class ChatActivity : AppCompatActivity() {
 
     private fun initializeElements() {
         setSupportActionBar(findViewById(R.id.toolbarChat))
-        otherUser = MessagesAndUsersDB.getUserByName(intent.getStringExtra(EXTRA_USER_ARRAY)!!)
 
+        otherDevice = Box.get(intent, OTHER_DEVICE)
+        otherDevice?.let { updateMessages(it) }
+        txtMessage = findViewById(R.id.txtMessage)
         recyclerChat = findViewById<View>(R.id.recyclerChatMessages) as RecyclerView
         val layoutManager = LinearLayoutManager(this)
         layoutManager.stackFromEnd = true
         recyclerChat!!.layoutManager = layoutManager
-        updateMessages()
-
-        txtMessage = findViewById(R.id.txtMessage)
-
         btnSend = findViewById(R.id.btnSend)
         btnSend?.setOnClickListener {
             val body = trimWhiteSpace(txtMessage?.text.toString())
@@ -125,6 +123,9 @@ class ChatActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
+        //todo close connection
+        println("Chat with ${otherDevice?.deviceName} destroyed")
+        Box.remove(intent)
         super.onDestroy()
         //todo close connection
         println("Chat with ${otherUser?.nickName}")

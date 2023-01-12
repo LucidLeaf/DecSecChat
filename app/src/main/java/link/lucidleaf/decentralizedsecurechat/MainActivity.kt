@@ -160,9 +160,8 @@ class MainActivity : AppCompatActivity() {
             }
             manager?.connect(channel, config, object : WifiP2pManager.ActionListener {
                 override fun onSuccess() {
-                    MessagesAndUsersDB.users.add(user)
                     val chatIntent = Intent(this@MainActivity, ChatActivity::class.java)
-                    chatIntent.putExtra(EXTRA_USER_ARRAY, user.name)
+                    Box.add(chatIntent, OTHER_DEVICE, otherDevice)
                     startActivity(chatIntent)
                 }
 
