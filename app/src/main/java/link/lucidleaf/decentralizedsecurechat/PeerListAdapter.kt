@@ -36,17 +36,15 @@ class PeerListAdapter(
 
     // Replace the contents of a view (invoked by the layout manager)
     override fun onBindViewHolder(viewHolder: PeerViewHolder, position: Int) {
-        // Get element from your dataset at this position and replace the
+        // Get element from dataset at this position and replace the
         // contents of the view with that element
-        val user = User(dataSet[position])
-
-        viewHolder.textView.text = user.nickName
+        val otherDevice = dataSet[position]
+        viewHolder.textView.text = otherDevice.deviceName
         viewHolder.textView.setOnClickListener {
-            activity.openChat(user)
+            activity.openChat(otherDevice)
         }
     }
 
-    // Return the size of your dataset (invoked by the layout manager)
     override fun getItemCount() = dataSet.size
 
 }
