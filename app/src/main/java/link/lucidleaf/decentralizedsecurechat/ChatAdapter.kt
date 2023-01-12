@@ -1,14 +1,11 @@
 package link.lucidleaf.decentralizedsecurechat
 
 import android.content.Context
-import android.text.format.DateFormat.format
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
-import androidx.cardview.widget.CardView
 import androidx.recyclerview.widget.RecyclerView
-import java.util.Date
 
 //credit goes to https://sendbird.com/developer/tutorials/android-chat-tutorial-building-a-messaging-ui
 class ChatAdapter(context: Context, messageList: List<Message>) :
@@ -28,7 +25,7 @@ class ChatAdapter(context: Context, messageList: List<Message>) :
     // Determines the appropriate ViewType according to the sender of the message.
     override fun getItemViewType(position: Int): Int {
         val message = mMessageList[position]
-        return if (message.sender == User.getCurrentUser()) {
+        return if (message.messageSentByMe) {
             // If the current user is the sender of the message
             VIEW_TYPE_MESSAGE_SENT
         } else {
@@ -66,39 +63,27 @@ class ChatAdapter(context: Context, messageList: List<Message>) :
     private inner class SentMessageHolder(itemView: View) :
         RecyclerView.ViewHolder(itemView) {
         var messageText: TextView
-        var timeText: TextView
 
         init {
             messageText = itemView.findViewById(R.id.text_gchat_message_me)
-            timeText = itemView.findViewById(R.id.text_gchat_timestamp_me)
         }
 
         fun bind(message: Message) {
             messageText.text = message.body
-            // Format the stored timestamp into a readable String.
-            timeText.text = formatCalendarTime(message.createdAt)
         }
     }
 
     private inner class ReceivedMessageHolder(itemView: View) :
         RecyclerView.ViewHolder(itemView) {
         var messageText: TextView
-        var timeText: TextView
 
         init {
             messageText = itemView.findViewById(R.id.text_gchat_message_other)
-            timeText = itemView.findViewById(R.id.text_gchat_timestamp_other)
         }
 
         fun bind(message: Message) {
             messageText.text = message.body
-            // Format the stored timestamp into a readable String using method.
-            timeText.text = formatCalendarTime(message.createdAt)
         }
-    }
-
-    private fun formatCalendarTime(createdAt: Date): String {
-        return format("hh:mm", createdAt).toString()
     }
 
     companion object {
