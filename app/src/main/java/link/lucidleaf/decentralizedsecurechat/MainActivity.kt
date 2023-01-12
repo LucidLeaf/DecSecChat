@@ -21,11 +21,7 @@ import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.google.android.gms.location.*
 
-private const val LOCATION_REQUEST = 1
 
-const val EXTRA_USER_ARRAY = "peerName"
-
-//most functionality here is based on https://developer.android.com/guide/topics/connectivity/wifip2p#create-application
 class MainActivity : AppCompatActivity() {
     // ux stuff
     private var pullDiscover: SwipeRefreshLayout? = null
