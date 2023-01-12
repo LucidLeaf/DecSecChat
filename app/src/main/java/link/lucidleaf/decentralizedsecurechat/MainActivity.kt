@@ -5,6 +5,7 @@ import android.annotation.SuppressLint
 import android.content.*
 import android.content.ContentValues.TAG
 import android.content.pm.PackageManager
+import android.net.wifi.WpsInfo
 import android.net.wifi.p2p.WifiP2pConfig
 import android.net.wifi.p2p.WifiP2pDevice
 import android.net.wifi.p2p.WifiP2pManager
@@ -27,22 +28,21 @@ class MainActivity : AppCompatActivity() {
     private var pullDiscover: SwipeRefreshLayout? = null
     private var txtToolTip: TextView? = null
     var wifiP2pActive = false
+
     //todo check if wifi is enabled
     var wifiEnabled = true
     var locationPermission = false
-    //tod check if location is enabled
+
+    //todo check if location is enabled
     var locationEnabled = true
     private var recyclerView: RecyclerView? = null
-    private var thisUser: User? = null
     private var menu: Menu? = null
 
-
-    // wifi p2p functionality
-    private val manager: WifiP2pManager? by lazy(LazyThreadSafetyMode.NONE) {
+    private val wifiP2pManager: WifiP2pManager? by lazy(LazyThreadSafetyMode.NONE) {
         getSystemService(Context.WIFI_P2P_SERVICE) as WifiP2pManager?
     }
-    private var channel: WifiP2pManager.Channel? = null
-    private var receiver: BroadcastReceiver? = null
+    private var P2pChannel: WifiP2pManager.Channel? = null
+    private var broadcastReceiver: BroadcastReceiver? = null
     private val intentFilter = IntentFilter().apply {
         addAction(WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION)
         addAction(WifiP2pManager.WIFI_P2P_PEERS_CHANGED_ACTION)
@@ -50,7 +50,6 @@ class MainActivity : AppCompatActivity() {
         addAction(WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION)
     }
     private val peers = mutableListOf<WifiP2pDevice>()
-
     @SuppressLint("NotifyDataSetChanged")
     val peerListListener = WifiP2pManager.PeerListListener { peerList ->
         val refreshedPeers = peerList.deviceList
@@ -83,7 +82,6 @@ class MainActivity : AppCompatActivity() {
 
     private fun initializeElements() {
         setSupportActionBar(findViewById(R.id.toolbar))
-        thisUser = User.getCurrentUser()
         txtToolTip = findViewById(R.id.txtRefreshTip)
         pullDiscover = findViewById(R.id.pullToRefresh)
         pullDiscover?.setOnRefreshListener { discoverPeers() }
@@ -94,10 +92,9 @@ class MainActivity : AppCompatActivity() {
         txtToolTip?.text = if (peers.isEmpty()) {
             getString(R.string.pull_to_discover_tooltip)
         } else ""
-        // enable receiving p2p events
-        channel = manager?.initialize(this, mainLooper, null)
-        channel?.also { channel ->
-            receiver = manager?.let { P2pBroadcastReceiver(it, channel, this) }
+        P2pChannel = wifiP2pManager?.initialize(this, mainLooper, null)
+        P2pChannel?.also { channel ->
+            broadcastReceiver = wifiP2pManager?.let { P2pBroadcastReceiver(it, channel, this) }
         }
     }
 
@@ -129,7 +126,7 @@ class MainActivity : AppCompatActivity() {
 
     @SuppressLint("MissingPermission")
     private fun discoverPeers() {
-        manager?.discoverPeers(channel, object : WifiP2pManager.ActionListener {
+        wifiP2pManager?.discoverPeers(P2pChannel, object : WifiP2pManager.ActionListener {
             override fun onSuccess() {}
 
             override fun onFailure(reasonCode: Int) {
@@ -143,18 +140,18 @@ class MainActivity : AppCompatActivity() {
         })
     }
 
-    fun openChat(user: User) {
-        // todo establish connection and provide connection to chat activity
-        println("Connecting to chat with ${user.nickName}")
-        val device: WifiP2pDevice = user.device
-        val config = WifiP2pConfig()
-        config.deviceAddress = device.deviceAddress
-        channel?.also { channel ->
+    fun openChat(otherDevice: WifiP2pDevice) {
+        // todo provide connection to chat activity
+        val config = WifiP2pConfig().apply {
+            deviceAddress = otherDevice.deviceAddress
+            wps.setup = WpsInfo.PBC
+        }
+        P2pChannel?.also { channel ->
             if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
                 Toast.makeText(this, "Location Permission not given", Toast.LENGTH_SHORT).show()
                 return
             }
-            manager?.connect(channel, config, object : WifiP2pManager.ActionListener {
+            wifiP2pManager?.connect(channel, config, object : WifiP2pManager.ActionListener {
                 override fun onSuccess() {
                     val chatIntent = Intent(this@MainActivity, ChatActivity::class.java)
                     Box.add(chatIntent, OTHER_DEVICE, otherDevice)
@@ -162,11 +159,8 @@ class MainActivity : AppCompatActivity() {
                 }
 
                 override fun onFailure(reason: Int) {
-                    Toast.makeText(
-                        this@MainActivity,
-                        "Unable to connect to ${user.nickName}",
-                        Toast.LENGTH_SHORT
-                    ).show()
+                    Toast.makeText(this@MainActivity, "connection refused", Toast.LENGTH_SHORT)
+                        .show()
                 }
             })
         }
@@ -175,12 +169,12 @@ class MainActivity : AppCompatActivity() {
     //cancel all actions
     override fun onBackPressed() {
         pullDiscover?.isRefreshing = false
-        manager?.cancelConnect(channel, object : WifiP2pManager.ActionListener {
+        wifiP2pManager?.cancelConnect(P2pChannel, object : WifiP2pManager.ActionListener {
             override fun onSuccess() = Unit
 
             override fun onFailure(reason: Int) = Unit
         })
-        manager?.stopPeerDiscovery(channel, object : WifiP2pManager.ActionListener {
+        wifiP2pManager?.stopPeerDiscovery(P2pChannel, object : WifiP2pManager.ActionListener {
             override fun onSuccess() = Unit
 
             override fun onFailure(reason: Int) = Unit
@@ -190,7 +184,7 @@ class MainActivity : AppCompatActivity() {
     /* register the broadcast receiver with the intent values to be matched */
     override fun onResume() {
         super.onResume()
-        receiver?.also { receiver ->
+        broadcastReceiver?.also { receiver ->
             registerReceiver(receiver, intentFilter)
         }
         discoverPeers()
@@ -199,7 +193,7 @@ class MainActivity : AppCompatActivity() {
     /* unregister the broadcast receiver */
     override fun onPause() {
         super.onPause()
-        receiver?.also { receiver ->
+        broadcastReceiver?.also { receiver ->
             unregisterReceiver(receiver)
         }
     }
@@ -207,7 +201,7 @@ class MainActivity : AppCompatActivity() {
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
         this.menu = menu
         menuInflater.inflate(R.menu.menu_main_activity, menu)
-        title = thisUser?.nickName
+        title = CURRENT_USER
         updateIcon(Icons.LOCATION)
         updateIcon(Icons.WIFI)
         return super.onCreateOptionsMenu(menu)
@@ -215,7 +209,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        MessagesAndUsersDB.dumpDB()
+        DataBase.dumpDB()
     }
 
     override fun onRequestPermissionsResult(
