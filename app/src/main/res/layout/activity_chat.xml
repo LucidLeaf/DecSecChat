@@ -16,7 +16,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/toolbarChat"
         app:stackFromEnd="true"
-        tools:listitem="@layout/chat_from_me">
+        tools:listitem="@layout/chat_from_them">
 
     </androidx.recyclerview.widget.RecyclerView>
 
@@ -54,7 +54,8 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toStartOf="@+id/btnSend"
         app:layout_constraintStart_toStartOf="parent"
-        tools:text="Enter message..." />
+        tools:text="Enter message..."
+        android:autofillHints="" />
 
     <androidx.appcompat.widget.Toolbar
         android:id="@+id/toolbarChat"
