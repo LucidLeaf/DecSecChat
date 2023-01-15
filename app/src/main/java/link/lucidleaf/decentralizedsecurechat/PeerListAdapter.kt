@@ -41,7 +41,7 @@ class PeerListAdapter(
         val otherDevice = dataSet[position]
         viewHolder.textView.text = otherDevice.deviceName
         viewHolder.textView.setOnClickListener {
-            activity.openChat(otherDevice)
+            activity.requestConnection(otherDevice)
         }
     }
 

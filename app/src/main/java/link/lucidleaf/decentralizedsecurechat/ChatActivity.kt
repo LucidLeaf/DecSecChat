@@ -1,7 +1,9 @@
 package link.lucidleaf.decentralizedsecurechat
 
-import android.net.wifi.p2p.WifiP2pDevice
 import android.os.Bundle
+import android.os.Handler
+import android.os.StrictMode
+import android.os.StrictMode.ThreadPolicy
 import android.view.Menu
 import android.view.View
 import android.widget.ImageView
@@ -9,6 +11,7 @@ import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import java.net.Socket
 
 
 class ChatActivity : AppCompatActivity() {
@@ -17,35 +20,54 @@ class ChatActivity : AppCompatActivity() {
     private var btnSend: ImageView? = null
     private var recyclerChat: RecyclerView? = null
     private var chatAdapter: ChatAdapter? = null
-    var otherDevice: WifiP2pDevice? = null
+    var publicKey: String = ""
+    private var socket: Socket? = null
+    private var ioStream: IOStream? = null
+    val ioHandler = Handler { message ->
+        when (message.what) {
+            MESSAGE_READ -> {
+                val readBuffer = message.obj as ByteArray
+                val body = String(readBuffer, 0, message.arg1)
+                DataBase.addMessage(Message(publicKey, false, body))
+            }
+        }
+        return@Handler true
+    }
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_chat)
 
         initializeElements()
+        //enable running Network code in the main loop
+        val policy = ThreadPolicy.Builder().permitAll().build()
+        StrictMode.setThreadPolicy(policy)
     }
 
     private fun initializeElements() {
         setSupportActionBar(findViewById(R.id.toolbarChat))
-
-        otherDevice = Box.get(intent, OTHER_DEVICE)
-        otherDevice?.let { updateMessages(it) }
+        socket = Box.get(intent, SOCKET)
+        ioStream = socket?.let { IOStream(it, this) }
+        ioStream?.start()
         txtMessage = findViewById(R.id.txtMessage)
         recyclerChat = findViewById<View>(R.id.recyclerChatMessages) as RecyclerView
         val layoutManager = LinearLayoutManager(this)
         layoutManager.stackFromEnd = true
-        recyclerChat!!.layoutManager = layoutManager
+        recyclerChat?.layoutManager = layoutManager
         btnSend = findViewById(R.id.btnSend)
         btnSend?.setOnClickListener {
             val body = trimWhiteSpace(txtMessage?.text.toString())
             if (body == "")
                 return@setOnClickListener
             txtMessage?.text = ""
-            otherDevice?.let {
-                DataBase.addMessage(Message(it, true, body))
-            }
+            ioStream?.write(body.toByteArray())
+            DataBase.addMessage(Message(publicKey, true, body))
         }
+        //get UI updates on new messages
+        DataBase.subscribeUIUpdates(this)
+        //display past messages
+        updateUI()
     }
 
     private fun trimWhiteSpace(string: String): String {
@@ -57,40 +79,26 @@ class ChatActivity : AppCompatActivity() {
         return rString
     }
 
-    fun updateMessages(otherDevice: WifiP2pDevice) {
-        val messageList = DataBase.getMessages(otherDevice)
+    fun updateUI() {
+        val messageList = DataBase.getMessages(publicKey)
         chatAdapter = ChatAdapter(this, messageList)
-        recyclerChat!!.adapter = chatAdapter
-        recyclerChat!!.smoothScrollToPosition(messageList.size)
+        recyclerChat?.adapter = chatAdapter
+        recyclerChat?.smoothScrollToPosition(messageList.size)
     }
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
         this.menu = menu
         menuInflater.inflate(R.menu.menu_chat_activity, menu)
-        title = otherDevice?.deviceName
+        title = publicKey
         return super.onCreateOptionsMenu(menu)
     }
 
-    override fun onResume() {
-        println("Chat with ${otherDevice?.deviceName} resumed")
-        super.onResume()
-    }
-
-    override fun onPause() {
-        println("Chat with ${otherDevice?.deviceName} paused")
-        super.onPause()
-    }
-
-    override fun onStop() {
-        println("Chat with ${otherDevice?.deviceName} stopped")
-        super.onStop()
-    }
-
     override fun onDestroy() {
-        //todo close connection
-        println("Chat with ${otherDevice?.deviceName} destroyed")
+        DataBase.unsubscribeUIUpdates(this)
         Box.remove(intent)
+        ioStream?.connected = false
+        ioStream?.join()
+        socket?.close()
         super.onDestroy()
     }
-
 }

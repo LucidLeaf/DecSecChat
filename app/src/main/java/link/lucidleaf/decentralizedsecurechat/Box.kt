@@ -5,7 +5,6 @@ import java.util.*
 
 //https://stackoverflow.com/a/62406575
 object Box {
-    // Number
     private var Number = 1
     private fun nextNumber(): Int {
         return Number++

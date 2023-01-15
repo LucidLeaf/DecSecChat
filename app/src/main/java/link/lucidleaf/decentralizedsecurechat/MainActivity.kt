@@ -5,7 +5,6 @@ import android.annotation.SuppressLint
 import android.content.*
 import android.content.ContentValues.TAG
 import android.content.pm.PackageManager
-import android.net.wifi.WpsInfo
 import android.net.wifi.p2p.WifiP2pConfig
 import android.net.wifi.p2p.WifiP2pDevice
 import android.net.wifi.p2p.WifiP2pManager
@@ -21,6 +20,8 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.google.android.gms.location.*
+import java.net.InetAddress
+import java.net.Socket
 
 
 class MainActivity : AppCompatActivity() {
@@ -41,15 +42,17 @@ class MainActivity : AppCompatActivity() {
     private val wifiP2pManager: WifiP2pManager? by lazy(LazyThreadSafetyMode.NONE) {
         getSystemService(Context.WIFI_P2P_SERVICE) as WifiP2pManager?
     }
-    private var P2pChannel: WifiP2pManager.Channel? = null
-    private var broadcastReceiver: BroadcastReceiver? = null
-    private val intentFilter = IntentFilter().apply {
+    private var p2pChannel: WifiP2pManager.Channel? = null
+    private var p2pBroadcastReceiver: BroadcastReceiver? = null
+    private val p2pIntentFilter = IntentFilter().apply {
         addAction(WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION)
         addAction(WifiP2pManager.WIFI_P2P_PEERS_CHANGED_ACTION)
         addAction(WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION)
         addAction(WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION)
     }
     private val peers = mutableListOf<WifiP2pDevice>()
+    var requestedDevice: WifiP2pDevice? = null
+
     @SuppressLint("NotifyDataSetChanged")
     val peerListListener = WifiP2pManager.PeerListListener { peerList ->
         val refreshedPeers = peerList.deviceList
@@ -67,6 +70,25 @@ class MainActivity : AppCompatActivity() {
             return@PeerListListener
         }
     }
+    val connectionInfoListener = WifiP2pManager.ConnectionInfoListener { info ->
+        val groupOwnerAddress: InetAddress = info.groupOwnerAddress
+        // After the group negotiation, we can determine the group owner
+        // (server).
+        var socket: Socket? = null
+        if (info.groupFormed && info.isGroupOwner) {
+            val server = Server()
+            server.start()
+            //wait for server to come online
+            while (server.socket == null)
+                Thread.sleep(10)
+            socket = server.socket!!
+        } else if (info.groupFormed) {
+            val client = Client(groupOwnerAddress)
+            client.start()
+            socket = client.socket
+        }
+        socket?.let { openChat(it) }
+    }
 
     enum class Icons {
         WIFI, LOCATION
@@ -78,6 +100,7 @@ class MainActivity : AppCompatActivity() {
 
         initializeElements()
         requestLocationPermissions()
+        Encryption.loadKeys(applicationContext)
     }
 
     private fun initializeElements() {
@@ -92,9 +115,9 @@ class MainActivity : AppCompatActivity() {
         txtToolTip?.text = if (peers.isEmpty()) {
             getString(R.string.pull_to_discover_tooltip)
         } else ""
-        P2pChannel = wifiP2pManager?.initialize(this, mainLooper, null)
-        P2pChannel?.also { channel ->
-            broadcastReceiver = wifiP2pManager?.let { P2pBroadcastReceiver(it, channel, this) }
+        p2pChannel = wifiP2pManager?.initialize(this, mainLooper, null)
+        p2pChannel?.also { channel ->
+            p2pBroadcastReceiver = wifiP2pManager?.let { P2pBroadcastReceiver(it, channel, this) }
         }
     }
 
@@ -126,7 +149,7 @@ class MainActivity : AppCompatActivity() {
 
     @SuppressLint("MissingPermission")
     private fun discoverPeers() {
-        wifiP2pManager?.discoverPeers(P2pChannel, object : WifiP2pManager.ActionListener {
+        wifiP2pManager?.discoverPeers(p2pChannel, object : WifiP2pManager.ActionListener {
             override fun onSuccess() {}
 
             override fun onFailure(reasonCode: Int) {
@@ -140,22 +163,17 @@ class MainActivity : AppCompatActivity() {
         })
     }
 
-    fun openChat(otherDevice: WifiP2pDevice) {
-        // todo provide connection to chat activity
+    @SuppressLint("MissingPermission")
+    fun requestConnection(otherDevice: WifiP2pDevice) {
         val config = WifiP2pConfig().apply {
             deviceAddress = otherDevice.deviceAddress
-            wps.setup = WpsInfo.PBC
         }
-        P2pChannel?.also { channel ->
-            if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-                Toast.makeText(this, "Location Permission not given", Toast.LENGTH_SHORT).show()
-                return
-            }
+        p2pChannel?.also { channel ->
             wifiP2pManager?.connect(channel, config, object : WifiP2pManager.ActionListener {
                 override fun onSuccess() {
-                    val chatIntent = Intent(this@MainActivity, ChatActivity::class.java)
-                    Box.add(chatIntent, OTHER_DEVICE, otherDevice)
-                    startActivity(chatIntent)
+                    requestedDevice = otherDevice
+                    Toast.makeText(this@MainActivity, "connection requested", Toast.LENGTH_SHORT)
+                        .show()
                 }
 
                 override fun onFailure(reason: Int) {
@@ -166,15 +184,25 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun openChat(socket: Socket) {
+        val chatIntent = Intent(this@MainActivity, ChatActivity::class.java)
+        Box.add(chatIntent, SOCKET, socket)
+        startActivity(chatIntent)
+    }
+
     //cancel all actions
     override fun onBackPressed() {
+        cancelAllConnections()
+    }
+
+    private fun cancelAllConnections() {
         pullDiscover?.isRefreshing = false
-        wifiP2pManager?.cancelConnect(P2pChannel, object : WifiP2pManager.ActionListener {
+        wifiP2pManager?.cancelConnect(p2pChannel, object : WifiP2pManager.ActionListener {
             override fun onSuccess() = Unit
 
             override fun onFailure(reason: Int) = Unit
         })
-        wifiP2pManager?.stopPeerDiscovery(P2pChannel, object : WifiP2pManager.ActionListener {
+        wifiP2pManager?.stopPeerDiscovery(p2pChannel, object : WifiP2pManager.ActionListener {
             override fun onSuccess() = Unit
 
             override fun onFailure(reason: Int) = Unit
@@ -184,8 +212,8 @@ class MainActivity : AppCompatActivity() {
     /* register the broadcast receiver with the intent values to be matched */
     override fun onResume() {
         super.onResume()
-        broadcastReceiver?.also { receiver ->
-            registerReceiver(receiver, intentFilter)
+        p2pBroadcastReceiver?.also { receiver ->
+            registerReceiver(receiver, p2pIntentFilter)
         }
         discoverPeers()
     }
@@ -193,7 +221,7 @@ class MainActivity : AppCompatActivity() {
     /* unregister the broadcast receiver */
     override fun onPause() {
         super.onPause()
-        broadcastReceiver?.also { receiver ->
+        p2pBroadcastReceiver?.also { receiver ->
             unregisterReceiver(receiver)
         }
     }
@@ -208,8 +236,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
-        super.onDestroy()
         DataBase.dumpDB()
+        super.onDestroy()
     }
 
     override fun onRequestPermissionsResult(
@@ -233,7 +261,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    override fun onOptionsItemSelected(item: MenuItem): Boolean =
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
         when (item.itemId) {
             R.id.menuWifi -> {
                 if (!wifiEnabled || !wifiP2pActive)
@@ -241,7 +269,6 @@ class MainActivity : AppCompatActivity() {
                         .show()
                 else Toast.makeText(this, "no action required", Toast.LENGTH_SHORT)
                     .show()
-                true
             }
             R.id.menuLocation -> {
                 if (!locationEnabled || !locationPermission)
@@ -252,9 +279,12 @@ class MainActivity : AppCompatActivity() {
                     ).show()
                 else Toast.makeText(this, "no action required", Toast.LENGTH_SHORT)
                     .show()
-                true
             }
             else -> super.onOptionsItemSelected(item)
         }
+        updateIcon(Icons.LOCATION)
+        updateIcon(Icons.WIFI)
+        return true
+    }
 
 }
