@@ -5,7 +5,7 @@ import java.io.InputStream
 import java.io.OutputStream
 import java.net.Socket
 
-class IOStream(
+class SendReceiveStream(
     socket: Socket,
     private val chat: ChatActivity
 ) : Thread() {
@@ -23,9 +23,10 @@ class IOStream(
     }
 
     override fun run() {
-        val buffer = ByteArray(1024) { 0 }
+        val buffer = ByteArray(65536) { 0 }
         var bytesRead: Int
 
+        //read incoming messages
         while (connected) {
             if (inputStream != null)
                 try {
@@ -39,7 +40,7 @@ class IOStream(
                 }
         }
     }
-
+    //write message
     fun write(bytes: ByteArray) {
         if (outputStream != null)
             try {

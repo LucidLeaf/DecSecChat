@@ -98,9 +98,9 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        Encryption.loadKeys(applicationContext)
         initializeElements()
         requestLocationPermissions()
-        Encryption.loadKeys(applicationContext)
     }
 
     private fun initializeElements() {

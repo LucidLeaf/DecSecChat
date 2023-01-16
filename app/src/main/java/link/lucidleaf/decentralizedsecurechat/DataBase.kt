@@ -1,13 +1,11 @@
 package link.lucidleaf.decentralizedsecurechat
 
-import java.util.*
 
 object DataBase {
 
-    //todo implmement saving known user and messages
+    //todo implement saving known user and messages
     val knownKeys: HashSet<String> = HashSet()
-    private val messages: HashMap<String, MutableList<Message>> =
-        HashMap<String, MutableList<Message>>()
+    private val messages: HashMap<String, MutableList<Message>> = HashMap()
     private val subscribedActivities: HashSet<ChatActivity> = HashSet()
 
     init {
@@ -23,12 +21,11 @@ object DataBase {
         //todo now do all that encrypted
     }
 
-    fun addMessage(message: Message) {
-        val otherKey = message.publicKey
+    fun addMessage(otherKey: String, message: Message) {
         if (!messages.containsKey(otherKey))
             messages[otherKey] = mutableListOf()
         messages[otherKey]?.add(message)
-        subscribedActivities.find { chatActivity -> chatActivity.publicKey == otherKey }
+        subscribedActivities.find { chatActivity -> chatActivity.peerPublicKey == otherKey }
             ?.updateUI()
     }
 
