@@ -4,8 +4,8 @@ import java.io.IOException
 import java.net.ServerSocket
 import java.net.Socket
 
-class Server : Thread() {
-    var socket: Socket? = null
+class Server : Thread(), Connection {
+    private var socket: Socket? = null
     var serverSocket: ServerSocket? = null
 
     override fun run() {
@@ -16,5 +16,12 @@ class Server : Thread() {
             e.printStackTrace()
         }
     }
+
+    override fun closeConnection() {
+        socket?.close()
+        serverSocket?.close()
+    }
+
+    override fun getSocket() = socket
 
 }

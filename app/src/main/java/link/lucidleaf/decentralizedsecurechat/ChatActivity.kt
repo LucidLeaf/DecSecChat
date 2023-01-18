@@ -11,7 +11,6 @@ import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import java.net.Socket
 
 
 class ChatActivity : AppCompatActivity() {
@@ -20,25 +19,28 @@ class ChatActivity : AppCompatActivity() {
     private var btnSend: ImageView? = null
     private var recyclerChat: RecyclerView? = null
     private var chatAdapter: ChatAdapter? = null
-    var peerPublicKey: String = ""
-    private var socket: Socket? = null
-    private var ioStream: SendReceiveStream? = null
+    private var peerPublicKey: String = ""
+    private var connection: Connection? = null
+    private var mainActivity: MainActivity? = null
+    private var sendReceiveStream: SendReceiveStream? = null
     val ioHandler = Handler { message ->
         when (message.what) {
             MESSAGE_READ -> {
                 val readBuffer = message.obj as ByteArray
-                var body = String(readBuffer, 0, message.arg1)
+                val body = String(readBuffer, 0, message.arg1)
                 //check if this message is the one containing the key
                 if (body.startsWith(KEY_HEADER) && body.endsWith(KEY_FOOTER)) {
                     peerPublicKey = body
                     peerPublicKey = peerPublicKey.removePrefix(KEY_HEADER)
                     peerPublicKey = peerPublicKey.removeSuffix(KEY_FOOTER)
-
-                    DataBase.addMessage(peerPublicKey, Message(true, "my key: ${Encryption.getPublicKey()}"))
-                    DataBase.addMessage(peerPublicKey, Message(true, "their key: $peerPublicKey"))
+                    DataBase.subscribeUIUpdates(this)
+//                    DataBase.addMessage(peerPublicKey, Message(true, "my key: ${Encryption.getPublicKey()}"))
+//                    DataBase.addMessage(peerPublicKey, Message(true, "their key: $peerPublicKey"))
+                    updateUI()
                 } else {
-                    body = Encryption.decryptMessage(body)
-                    DataBase.addMessage(peerPublicKey, Message(false, body))
+                    val plainText = Encryption.decryptMessage(body)
+                    val msg = Message(false, plainText)
+                    DataBase.addMessage(peerPublicKey, msg)
                 }
             }
         }
@@ -57,12 +59,12 @@ class ChatActivity : AppCompatActivity() {
 
     private fun initializeElements() {
         setSupportActionBar(findViewById(R.id.toolbarChat))
-        socket = Box.get(intent, SOCKET)
+        connection = Box.get(intent, CONNECTION)
+        mainActivity = Box.get(intent, MAIN_ACTIVITY)
         //get UI updates on new messages
-        DataBase.subscribeUIUpdates(this)
-        ioStream = socket?.let { SendReceiveStream(it, this) }
-        ioStream?.start()
-        ioStream?.write(keyMessage().toByteArray())
+        sendReceiveStream = connection?.let { it.getSocket()?.let { it1 -> SendReceiveStream(it1, this) } }
+        sendReceiveStream?.start()
+        sendReceiveStream?.write(keyMessage().toByteArray())
 
         txtMessage = findViewById(R.id.txtMessage)
         recyclerChat = findViewById<View>(R.id.recyclerChatMessages) as RecyclerView
@@ -76,11 +78,9 @@ class ChatActivity : AppCompatActivity() {
                 return@setOnClickListener
             txtMessage?.text = ""
             val cipher = Encryption.encryptMessage(body, peerPublicKey)
-            ioStream?.write(cipher.toByteArray())
+            sendReceiveStream?.write(cipher.toByteArray())
             DataBase.addMessage(peerPublicKey, Message(true, body))
         }
-        //display past messages
-        updateUI()
     }
 
     private fun keyMessage(): String {
@@ -112,9 +112,12 @@ class ChatActivity : AppCompatActivity() {
     override fun onDestroy() {
         DataBase.unsubscribeUIUpdates(this)
         Box.remove(intent)
-        ioStream?.connected = false
-        ioStream?.join()
-        socket?.close()
+        connection?.closeConnection()
+        sendReceiveStream?.closeConnection()
+        sendReceiveStream?.join()
+        mainActivity?.closeP2pConnection()
         super.onDestroy()
     }
+
+    fun getPeerPublicKey(): String = peerPublicKey
 }

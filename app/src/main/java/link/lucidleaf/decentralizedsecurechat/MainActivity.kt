@@ -21,7 +21,6 @@ import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.google.android.gms.location.*
 import java.net.InetAddress
-import java.net.Socket
 
 
 class MainActivity : AppCompatActivity() {
@@ -39,9 +38,7 @@ class MainActivity : AppCompatActivity() {
     private var recyclerView: RecyclerView? = null
     private var menu: Menu? = null
 
-    private val wifiP2pManager: WifiP2pManager? by lazy(LazyThreadSafetyMode.NONE) {
-        getSystemService(Context.WIFI_P2P_SERVICE) as WifiP2pManager?
-    }
+    private var wifiP2pManager: WifiP2pManager? = null
     private var p2pChannel: WifiP2pManager.Channel? = null
     private var p2pBroadcastReceiver: BroadcastReceiver? = null
     private val p2pIntentFilter = IntentFilter().apply {
@@ -74,20 +71,18 @@ class MainActivity : AppCompatActivity() {
         val groupOwnerAddress: InetAddress = info.groupOwnerAddress
         // After the group negotiation, we can determine the group owner
         // (server).
-        var socket: Socket? = null
+        var connection: Connection? = null
         if (info.groupFormed && info.isGroupOwner) {
-            val server = Server()
-            server.start()
+            connection = Server()
+            connection.start()
             //wait for server to come online
-            while (server.socket == null)
+            while (connection.getSocket() == null)
                 Thread.sleep(10)
-            socket = server.socket!!
         } else if (info.groupFormed) {
-            val client = Client(groupOwnerAddress)
-            client.start()
-            socket = client.socket
+            connection = Client(groupOwnerAddress)
+            connection.start()
         }
-        socket?.let { openChat(it) }
+        connection?.let { openChat(it) }
     }
 
     enum class Icons {
@@ -115,6 +110,7 @@ class MainActivity : AppCompatActivity() {
         txtToolTip?.text = if (peers.isEmpty()) {
             getString(R.string.pull_to_discover_tooltip)
         } else ""
+        wifiP2pManager = getSystemService(Context.WIFI_P2P_SERVICE) as WifiP2pManager?
         p2pChannel = wifiP2pManager?.initialize(this, mainLooper, null)
         p2pChannel?.also { channel ->
             p2pBroadcastReceiver = wifiP2pManager?.let { P2pBroadcastReceiver(it, channel, this) }
@@ -184,18 +180,15 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun openChat(socket: Socket) {
+    private fun openChat(connection: Connection) {
         val chatIntent = Intent(this@MainActivity, ChatActivity::class.java)
-        Box.add(chatIntent, SOCKET, socket)
+        Box.add(chatIntent, CONNECTION, connection)
+        Box.add(chatIntent, MAIN_ACTIVITY, this)
         startActivity(chatIntent)
     }
 
     //cancel all actions
     override fun onBackPressed() {
-        cancelAllConnections()
-    }
-
-    private fun cancelAllConnections() {
         pullDiscover?.isRefreshing = false
         wifiP2pManager?.cancelConnect(p2pChannel, object : WifiP2pManager.ActionListener {
             override fun onSuccess() = Unit
@@ -229,7 +222,6 @@ class MainActivity : AppCompatActivity() {
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
         this.menu = menu
         menuInflater.inflate(R.menu.menu_main_activity, menu)
-        title = CURRENT_USER
         updateIcon(Icons.LOCATION)
         updateIcon(Icons.WIFI)
         return super.onCreateOptionsMenu(menu)
@@ -285,6 +277,25 @@ class MainActivity : AppCompatActivity() {
         updateIcon(Icons.LOCATION)
         updateIcon(Icons.WIFI)
         return true
+    }
+
+    @SuppressLint("MissingPermission")
+    fun closeP2pConnection() {
+        if (wifiP2pManager != null && p2pChannel != null) {
+            wifiP2pManager!!.requestGroupInfo(p2pChannel) {
+                wifiP2pManager!!.removeGroup(
+                    p2pChannel,
+                    object : WifiP2pManager.ActionListener {
+                        override fun onSuccess() {
+                            Log.d(TAG, "removeGroup onSuccess -")
+                        }
+
+                        override fun onFailure(reason: Int) {
+                            Log.d(TAG, "removeGroup onFailure -$reason")
+                        }
+                    })
+            }
+        }
     }
 
 }

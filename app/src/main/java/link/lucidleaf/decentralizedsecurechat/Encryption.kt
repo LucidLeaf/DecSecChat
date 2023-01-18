@@ -72,19 +72,23 @@ object Encryption {
         //create key from string
         val factory: KeyFactory = KeyFactory.getInstance(ENCRYPTION_ALGORITHM)
         val decodedKey = Base64.decode(publicKey, Base64.DEFAULT)
-        val key = factory.generatePublic(X509EncodedKeySpec(decodedKey))
+        val encodedKeySpec = X509EncodedKeySpec(decodedKey)
+        val key = factory.generatePublic(encodedKeySpec)
         //encrypt text
         cipher.init(Cipher.ENCRYPT_MODE, key)
         val encryptedText = cipher.doFinal(body.toByteArray())
-        val encodedText =  Base64.encodeToString(encryptedText, Base64.DEFAULT)
-        return encodedText
+        return Base64.encodeToString(encryptedText, Base64.DEFAULT)
     }
 
     fun decryptMessage(body: String): String {
         cipher.init(Cipher.DECRYPT_MODE, privateKey)
         val encryptedText = Base64.decode(body, Base64.DEFAULT)
-        val decryptedText = cipher.doFinal(encryptedText)
-        return String(decryptedText)
+        return try {
+            val decryptedText = cipher.doFinal(encryptedText)
+            String(decryptedText)
+        } catch (e: Exception) {
+            body
+        }
     }
 
     fun getPublicKey(): String? {

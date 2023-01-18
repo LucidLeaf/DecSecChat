@@ -11,7 +11,6 @@ class SendReceiveStream(
 ) : Thread() {
     private var inputStream: InputStream? = null
     private var outputStream: OutputStream? = null
-    var connected = true
 
     init {
         try {
@@ -27,19 +26,19 @@ class SendReceiveStream(
         var bytesRead: Int
 
         //read incoming messages
-        while (connected) {
-            if (inputStream != null)
-                try {
-                    bytesRead = inputStream!!.read(buffer)
-                    if (bytesRead > 0) {
-                        chat.ioHandler.obtainMessage(MESSAGE_READ, bytesRead, -1, buffer)
-                            .sendToTarget()
-                    }
-                } catch (e: IOException) {
-                    e.printStackTrace()
+        while (inputStream != null) {
+            try {
+                bytesRead = inputStream!!.read(buffer)
+                if (bytesRead > 0) {
+                    chat.ioHandler.obtainMessage(MESSAGE_READ, bytesRead, -1, buffer)
+                        .sendToTarget()
                 }
+            } catch (e: IOException) {
+                e.printStackTrace()
+            }
         }
     }
+
     //write message
     fun write(bytes: ByteArray) {
         if (outputStream != null)
@@ -48,5 +47,10 @@ class SendReceiveStream(
             } catch (e: IOException) {
                 e.printStackTrace()
             }
+    }
+
+    fun closeConnection() {
+        inputStream = null
+        outputStream = null
     }
 }

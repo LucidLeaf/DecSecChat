@@ -7,8 +7,8 @@ import java.net.Socket
 
 class Client(
     hostIPAddress: InetAddress
-) : Thread() {
-    var socket: Socket = Socket()
+) : Thread(), Connection {
+    private var socket: Socket = Socket()
     private val hostIP: String? = hostIPAddress.hostAddress
 
     override fun run() {
@@ -18,4 +18,10 @@ class Client(
             e.printStackTrace()
         }
     }
+
+    override fun closeConnection() {
+        socket.close()
+    }
+
+    override fun getSocket () = socket
 }

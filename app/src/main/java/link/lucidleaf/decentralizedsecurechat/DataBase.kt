@@ -25,21 +25,15 @@ object DataBase {
         if (!messages.containsKey(otherKey))
             messages[otherKey] = mutableListOf()
         messages[otherKey]?.add(message)
-        subscribedActivities.find { chatActivity -> chatActivity.peerPublicKey == otherKey }
+        subscribedActivities.find { chatActivity -> chatActivity.getPeerPublicKey() == otherKey }
             ?.updateUI()
     }
 
-    fun getMessages(otherKey: String): List<Message> {
-        return if (messages.containsKey(otherKey) && messages[otherKey] != null)
+    fun getMessages(otherKey: String): List<Message> =
+        if (messages.containsKey(otherKey) && messages[otherKey] != null)
             messages[otherKey]!!
-        else {
-            return emptyList()
-//            return List(10) { i ->
-//                if (i < 5) Message(otherKey, true, "This is a test message #$i")
-//                else Message(otherKey, false, "This is a test message #$i")
-//            }
-        }
-    }
+        else
+             emptyList()
 
     fun subscribeUIUpdates(chatActivity: ChatActivity) {
         subscribedActivities.add(chatActivity)
