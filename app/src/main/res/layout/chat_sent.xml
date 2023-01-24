@@ -7,7 +7,7 @@
     android:layout_height="wrap_content">
 
     <androidx.cardview.widget.CardView
-        android:id="@+id/card_gchat_message_me"
+        android:id="@+id/card_message_status"
         style="@style/Theme.DecentralizedSecureChat"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -21,13 +21,13 @@
         app:layout_constraintTop_toTopOf="parent">
 
         <LinearLayout
-            android:id="@+id/layout_gchat_container_me"
+            android:id="@+id/layout_container_status"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:orientation="vertical">
 
             <TextView
-                android:id="@+id/text_gchat_message_me"
+                android:id="@+id/text_message_status"
                 style="@style/Theme.DecentralizedSecureChat"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"

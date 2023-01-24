@@ -25,29 +25,28 @@ class ChatAdapter(context: Context, messageList: List<Message>) :
     // Determines the appropriate ViewType according to the sender of the message.
     override fun getItemViewType(position: Int): Int {
         val message = mMessageList[position]
-        return if (message.messageSentByMe) {
-            // If the current user is the sender of the message
-            VIEW_TYPE_MESSAGE_SENT
-        } else {
-            // If some other user sent the message
-            VIEW_TYPE_MESSAGE_RECEIVED
-        }
+        return message.messageType
     }
 
     // Inflates the appropriate layout according to the ViewType.
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
         val view: View
-        return if (viewType == VIEW_TYPE_MESSAGE_SENT) {
+        return if (viewType == MESSAGE_SENT) {
             view = LayoutInflater.from(parent.context)
-                .inflate(R.layout.chat_from_me, parent, false)
+                .inflate(R.layout.chat_sent, parent, false)
             SentMessageHolder(view)
+        } else if (viewType == MESSAGE_RECEIVED) {
+
+            view = LayoutInflater.from(parent.context)
+                .inflate(R.layout.chat_received, parent, false)
+            ReceivedMessageHolder(view)
         } else {
-            if (viewType != VIEW_TYPE_MESSAGE_RECEIVED) {
-                println("Unkown message type")
+            if (viewType != MESSAGE_STATUS) {
+                print("Unknown message type")
             }
             view = LayoutInflater.from(parent.context)
-                .inflate(R.layout.chat_from_them, parent, false)
-            ReceivedMessageHolder(view)
+                .inflate(R.layout.chat_status, parent, false)
+            StatusMessageHolder(view)
         }
     }
 
@@ -55,8 +54,9 @@ class ChatAdapter(context: Context, messageList: List<Message>) :
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
         val message = mMessageList[position]
         when (holder.itemViewType) {
-            VIEW_TYPE_MESSAGE_SENT -> (holder as SentMessageHolder?)!!.bind(message)
-            VIEW_TYPE_MESSAGE_RECEIVED -> (holder as ReceivedMessageHolder?)!!.bind(message)
+            MESSAGE_SENT -> (holder as SentMessageHolder?)!!.bind(message)
+            MESSAGE_RECEIVED -> (holder as ReceivedMessageHolder?)!!.bind(message)
+            MESSAGE_STATUS -> (holder as StatusMessageHolder?)!!.bind(message)
         }
     }
 
@@ -65,7 +65,7 @@ class ChatAdapter(context: Context, messageList: List<Message>) :
         var messageText: TextView
 
         init {
-            messageText = itemView.findViewById(R.id.text_gchat_message_me)
+            messageText = itemView.findViewById(R.id.text_message_status)
         }
 
         fun bind(message: Message) {
@@ -86,8 +86,16 @@ class ChatAdapter(context: Context, messageList: List<Message>) :
         }
     }
 
-    companion object {
-        private const val VIEW_TYPE_MESSAGE_SENT = 1
-        private const val VIEW_TYPE_MESSAGE_RECEIVED = 2
+    private inner class StatusMessageHolder(itemView: View) :
+        RecyclerView.ViewHolder(itemView) {
+        var messageText: TextView
+
+        init {
+            messageText = itemView.findViewById(R.id.text_message_status)
+        }
+
+        fun bind(message: Message) {
+            messageText.text = message.body
+        }
     }
 }

@@ -16,7 +16,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/toolbarChat"
         app:stackFromEnd="true"
-        tools:listitem="@layout/chat_from_them">
+        tools:listitem="@layout/chat_received">
 
     </androidx.recyclerview.widget.RecyclerView>
 

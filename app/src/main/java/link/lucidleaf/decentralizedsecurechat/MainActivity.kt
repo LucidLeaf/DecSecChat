@@ -20,6 +20,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.google.android.gms.location.*
+import java.io.File
 import java.net.InetAddress
 
 
@@ -94,6 +95,7 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         Encryption.loadKeys(applicationContext)
+        DataBase.readDB(applicationContext)
         initializeElements()
         requestLocationPermissions()
     }
@@ -106,7 +108,6 @@ class MainActivity : AppCompatActivity() {
         recyclerView = findViewById(R.id.peerList)
         recyclerView?.layoutManager = LinearLayoutManager(this)
         recyclerView?.adapter = PeerListAdapter(peers, this)
-        //show hint if no devices available
         txtToolTip?.text = if (peers.isEmpty()) {
             getString(R.string.pull_to_discover_tooltip)
         } else ""
@@ -227,11 +228,6 @@ class MainActivity : AppCompatActivity() {
         return super.onCreateOptionsMenu(menu)
     }
 
-    override fun onDestroy() {
-        DataBase.dumpDB()
-        super.onDestroy()
-    }
-
     override fun onRequestPermissionsResult(
         requestCode: Int, permissions: Array<out String>, grantResults: IntArray
     ) {
@@ -242,13 +238,12 @@ class MainActivity : AppCompatActivity() {
                         this, Manifest.permission.ACCESS_FINE_LOCATION
                     ) == PackageManager.PERMISSION_GRANTED
                 ) {
-                    println("Location Permission Granted")
                     locationPermission = true
                 }
             } else {
-                println("Location Permission Denied")
                 locationPermission = false
             }
+            updateIcon(Icons.LOCATION)
             return
         }
     }
@@ -298,4 +293,8 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    override fun onDestroy() {
+        DataBase.dumpDB(applicationContext)
+        super.onDestroy()
+    }
 }

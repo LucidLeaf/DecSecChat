@@ -33,13 +33,13 @@ class ChatActivity : AppCompatActivity() {
                     peerPublicKey = body
                     peerPublicKey = peerPublicKey.removePrefix(KEY_HEADER)
                     peerPublicKey = peerPublicKey.removeSuffix(KEY_FOOTER)
+                    DataBase.addMessage(peerPublicKey, Message(MESSAGE_STATUS, "peer public RSA key:\n$peerPublicKey"))
+
                     DataBase.subscribeUIUpdates(this)
-//                    DataBase.addMessage(peerPublicKey, Message(true, "my key: ${Encryption.getPublicKey()}"))
-//                    DataBase.addMessage(peerPublicKey, Message(true, "their key: $peerPublicKey"))
                     updateUI()
                 } else {
                     val plainText = Encryption.decryptMessage(body)
-                    val msg = Message(false, plainText)
+                    val msg = Message(MESSAGE_RECEIVED, plainText)
                     DataBase.addMessage(peerPublicKey, msg)
                 }
             }
@@ -62,7 +62,8 @@ class ChatActivity : AppCompatActivity() {
         connection = Box.get(intent, CONNECTION)
         mainActivity = Box.get(intent, MAIN_ACTIVITY)
         //get UI updates on new messages
-        sendReceiveStream = connection?.let { it.getSocket()?.let { it1 -> SendReceiveStream(it1, this) } }
+        sendReceiveStream =
+            connection?.let { it.getSocket()?.let { it1 -> SendReceiveStream(it1, this) } }
         sendReceiveStream?.start()
         sendReceiveStream?.write(keyMessage().toByteArray())
 
@@ -79,7 +80,7 @@ class ChatActivity : AppCompatActivity() {
             txtMessage?.text = ""
             val cipher = Encryption.encryptMessage(body, peerPublicKey)
             sendReceiveStream?.write(cipher.toByteArray())
-            DataBase.addMessage(peerPublicKey, Message(true, body))
+            DataBase.addMessage(peerPublicKey, Message(MESSAGE_SENT, body))
         }
     }
 
@@ -109,6 +110,8 @@ class ChatActivity : AppCompatActivity() {
         return super.onCreateOptionsMenu(menu)
     }
 
+    fun getPeerPublicKey(): String = peerPublicKey
+
     override fun onDestroy() {
         DataBase.unsubscribeUIUpdates(this)
         Box.remove(intent)
@@ -118,6 +121,4 @@ class ChatActivity : AppCompatActivity() {
         mainActivity?.closeP2pConnection()
         super.onDestroy()
     }
-
-    fun getPeerPublicKey(): String = peerPublicKey
 }
