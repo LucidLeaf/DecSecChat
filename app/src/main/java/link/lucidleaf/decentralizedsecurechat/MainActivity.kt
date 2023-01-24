@@ -20,7 +20,6 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.google.android.gms.location.*
-import java.io.File
 import java.net.InetAddress
 
 
@@ -191,11 +190,20 @@ class MainActivity : AppCompatActivity() {
     //cancel all actions
     override fun onBackPressed() {
         pullDiscover?.isRefreshing = false
+        closeP2pConnection()
+        cancelConnection()
+        cancelDiscovery()
+    }
+
+    private fun cancelConnection() {
         wifiP2pManager?.cancelConnect(p2pChannel, object : WifiP2pManager.ActionListener {
             override fun onSuccess() = Unit
 
             override fun onFailure(reason: Int) = Unit
         })
+    }
+
+    private fun cancelDiscovery() {
         wifiP2pManager?.stopPeerDiscovery(p2pChannel, object : WifiP2pManager.ActionListener {
             override fun onSuccess() = Unit
 
